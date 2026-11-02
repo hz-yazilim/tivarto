@@ -12,7 +12,6 @@ export default async function CategoriesPage() {
   const data = await withTenant(tenant.id, async (tx) => {
     const categories = await tx.category.findMany({
       orderBy: { sortOrder: "asc" },
-      _count: { select: { products: true } },
     });
     return { categories };
   });
@@ -59,7 +58,7 @@ export default async function CategoriesPage() {
                   <div>
                     <div className="font-medium">{c.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {c._count.products} ürün
+                      Kategori
                     </div>
                   </div>
                   <form action={deleteCategoryAction} className="inline" onSubmit={(e) => {
