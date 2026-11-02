@@ -11,7 +11,19 @@ import {
   destroySession,
   SESSION_TTL_MS,
 } from "@/lib/auth";
-import { isValidSlug, SESSION_COOKIE_NAME } from "@/lib/constants";
+import {
+  demoDestination,
+  inferDemoRole,
+  isDemoRole,
+  isValidSlug,
+  SESSION_COOKIE_NAME,
+} from "@/lib/constants";
+import { DEMO_ACTIVE } from "@/lib/demo-config";
+import {
+  clearDemoCookies,
+  markDemoSession,
+  startDemoSession,
+} from "@/lib/demo-session.server";
 import { prisma, withPlatform } from "@/lib/db";
 import { isValidEmail, str, type FormState } from "@/lib/validation";
 
@@ -48,6 +60,22 @@ export async function loginAction(
     return { error: "E-posta ve şifre gereklidir." };
   }
 
+  /**
+   * DEMO MODU (veritabanı bağlantısı kurulana kadar):
+   * Girilen e-posta/şifre doğrulanmaz; seçilen (veya e-postadan tahmin edilen)
+   * rol için örnek hesapla oturum açılır. Böylece admin, işletme ve müşteri
+   * panellerinin üçü de gezilebilir. Veritabanı bağlandığında `DEMO_ACTIVE`
+   * otomatik olarak kapanır ve aşağıdaki gerçek doğrulama yolu çalışır.
+   */
+  if (DEMO_ACTIVE) {
+    const rawRole = str(formData, "role");
+    const role = isDemoRole(rawRole)
+      ? rawRole
+      : inferDemoRole(email, str(formData, "callbackUrl"));
+    await startDemoSession(role, email);
+    redirect(demoDestination(role, formData.get("callbackUrl")));
+  }
+
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
     return { error: "E-posta veya şifre hatalı." };
@@ -72,6 +100,22 @@ export async function loginAction(
   await setSessionCookie(token);
 
   redirect(user.isPlatformAdmin ? "/admin" : "/panel");
+}
+
+/**
+ * Demo panelleri arasında tek tıkla geçiş (ör. işletme panelindeyken admin
+ * paneline geçmek için). Sadece `DEMO_ACTIVE` iken çalışır.
+ */
+export async function demoSwitchRoleAction(formData: FormData): Promise<void> {
+  if (!DEMO_ACTIVE) {
+    redirect("/login");
+  }
+  const rawRole = str(formData, "role");
+  if (!isDemoRole(rawRole)) {
+    redirect("/login");
+  }
+  await startDemoSession(rawRole);
+  redirect(demoDestination(rawRole, formData.get("callbackUrl")));
 }
 
 export async function registerAction(
@@ -182,6 +226,9 @@ export async function registerAction(
 
   const token = await createSession(userId, tenantId);
   await setSessionCookie(token);
+  if (DEMO_ACTIVE) {
+    await markDemoSession("business", email);
+  }
 
   redirect("/panel");
 }
@@ -195,6 +242,7 @@ export async function logoutAction(): Promise<void> {
       await destroySession(token);
     }
     await clearSessionCookie();
+    await clearDemoCookies();
   } catch {
     // Çıkış sırasında hata olsa da kullanıcıyı girişe gönder.
   }

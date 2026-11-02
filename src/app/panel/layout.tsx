@@ -1,6 +1,7 @@
 import { requireTenantContext } from "@/lib/session.server";
 import PanelSidebar from "@/components/panel-sidebar";
 import DemoBanner from "@/components/demo-banner";
+import DemoRoleSwitcher from "@/components/demo-role-switcher";
 import TenantStatusGuard from "@/components/tenant-status-guard";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +48,9 @@ export default async function PanelLayout({
             </div>
           </header>
           <main className="flex-1 overflow-y-auto p-4 md:p-6">
+            <div className="mb-4">
+              <DemoRoleSwitcher compact />
+            </div>
             <DemoBanner />
             {children}
           </main>

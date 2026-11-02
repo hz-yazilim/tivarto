@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import StorefrontOrder from "@/components/storefront-order";
 import DemoBanner from "@/components/demo-banner";
+import DemoRoleSwitcher from "@/components/demo-role-switcher";
 
 export const dynamic = "force-dynamic";
 
@@ -116,10 +117,22 @@ export default async function ShopPage({
               ← Tivarto
             </Button>
           </Link>
-          <span className="text-xs text-muted-foreground">
-            {slug} · Tivarto vitrini
-          </span>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/musteri"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Siparişlerim
+            </Link>
+            <span className="text-xs text-muted-foreground">
+              {slug} · Tivarto vitrini
+            </span>
+          </div>
         </nav>
+
+        <div className="mb-4">
+          <DemoRoleSwitcher compact />
+        </div>
 
         <DemoBanner />
 

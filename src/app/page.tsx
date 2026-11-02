@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import DemoRoleSwitcher from "@/components/demo-role-switcher";
+import { DEMO_SHOP_SLUG } from "@/lib/constants";
+import { DEMO_ACTIVE } from "@/lib/demo-config";
 
 const FEATURES = [
   {
@@ -64,6 +67,34 @@ export default function Home() {
         </div>
       </header>
 
+      {DEMO_ACTIVE && (
+        <section className="mb-12 rounded-xl border border-amber-200 bg-amber-50/60 p-5">
+          <h2 className="text-lg font-semibold">Demo panellerine hızlı erişim</h2>
+          <p className="mb-4 mt-1 text-sm text-muted-foreground">
+            Veritabanı bağlantısı henüz yapılmadığı için örnek verilerle
+            çalışıyoruz. Aşağıdan bir rol seçerek üç panelden birine giriş
+            yapabilirsiniz; bilgi girmeden de tek tıkla geçiş yapılır.
+          </p>
+          <div className="rounded-lg bg-card">
+            <DemoRoleSwitcher />
+          </div>
+          <div className="mt-3 flex flex-wrap gap-3 text-xs">
+            <Link href={`/shop/${DEMO_SHOP_SLUG}`} className="font-medium text-primary hover:underline">
+              Müşteri vitrini: /shop/{DEMO_SHOP_SLUG} →
+            </Link>
+            <Link href="/musteri" className="font-medium text-primary hover:underline">
+              Siparişlerim →
+            </Link>
+            <Link href="/panel" className="font-medium text-primary hover:underline">
+              İşletme paneli →
+            </Link>
+            <Link href="/admin" className="font-medium text-primary hover:underline">
+              Platform paneli →
+            </Link>
+          </div>
+        </section>
+      )}
+
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {FEATURES.map((f) => (
           <div
@@ -81,6 +112,7 @@ export default function Home() {
         <h2 className="mb-2 font-semibold">Demo modu</h2>
         <ul className="list-inside list-disc space-y-1">
           <li>Bu sürüm geliştirme aşamasındadır, örnek verilerle çalışır.</li>
+          <li>Giriş bilgileri doğrulanmaz; veriler bellekte tutulur, veritabanına yazılmaz.</li>
           <li>Demo verileri gerçek işletme verisi değildir.</li>
           <li>Gerçek müşteri bilgisi girilmemeli, gerçek ödeme alınmamalıdır.</li>
         </ul>

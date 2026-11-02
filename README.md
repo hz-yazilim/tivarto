@@ -29,7 +29,14 @@ panelinden (`/admin`) işletmeleri, paketleri ve ödemeleri yönetir.
 | `isPlatformAdmin = true` | `/admin` | Tüm işletmeler, planlar, ödemeler, loglar |
 | İşletme sahibi (`OWNER`) | `/panel` | Kendi işletmesinin tüm modülleri |
 | Personel (`STAFF`) | `/panel` | Kendi işletmesinin modülleri (rol ayrımı genişletilecek) |
+| Müşteri (demo) | `/musteri` | Siparişlerim + `/shop/demo` vitrininden alışveriş |
 | Anonim | `/`, `/login`, `/register`, `/shop/[slug]` | Vitrinden sipariş verebilir |
+
+> **Demo hızlı giriş:** Veritabanı yokken `/login` ekranındaki "Açılacak panel"
+> seçimi veya ana sayfadaki üç buton ile **Platform Yöneticisi / İşletme
+> Yetkilisi / Müşteri** rollerinden biriyle giriş yapılır. Girilen e-posta ve
+> şifre doğrulanmaz; tüm paneller örnek verilerle açılır. Panellerin üstündeki
+> "Demo" şeridinden rol değiştirilebilir.
 
 ---
 
@@ -48,6 +55,8 @@ panelinden (`/admin`) işletmeleri, paketleri ve ödemeleri yönetir.
 - Merkez yönetim paneli (işletmeler, planlar, ödemeler, denetim kayıtları)
 - RLS ile işletmeler arası veri izolasyonu (fail-closed)
 - Mobil uyumlu arayüzler
+- **Veritabanı olmadan demo katmanı:** örnek verilerle üç panel de gezilebilir,
+  giriş bilgileri doğrulanmaz (yalnızca `DATABASE_URL` tanımsızken)
 
 ### 🚧 Henüz yok / sıradaki işler
 
@@ -88,11 +97,22 @@ Aşağıdakiler gerçek PostgreSQL üzerinde, RLS **açık ve zorunlu** kısıtl
 
 ```bash
 git clone <repo-url> tiverto && cd tiverto
-npm install
+npm install                     # scripts/prisma-generate.mjs istemciyi üretir (ağ gerekmez)
 
 cp .env.example .env            # değerleri doldurun
 # DATABASE_URL, DIRECT_URL, NEXT_PUBLIC_ROOT_DOMAIN
+```
 
+**Sadece demo olarak bakmak istiyorsan veritabanı kurmana gerek yok:**
+`.env` dosyasında `DATABASE_URL` satırını yorum satırı yap (veya hiç ekleme),
+ardından `npm run dev`. Uygulama bellek içi örnek veriyle açılır; `/login`
+ekranından istediğin bilgilerle veya ana sayfadaki tek tıklık butonlarla üç
+paneline de girebilirsin. Demo sırasında eklediğin kayıtlar sunucu yeniden
+başlayınca sıfırlanır.
+
+Gerçek veritabanıyla çalışmak için:
+
+```bash
 npm run db:migrate:deploy       # migration'ları uygula (init: tüm tablolar)
 npm run db:app-role             # kısıtlı uygulama rolü (RLS için şart)
 npm run db:rls                  # RLS politikalarını uygula + doğrula
@@ -100,6 +120,10 @@ npm run db:seed                 # demo verisi (DEMO_MODE=true ise)
 
 npm run dev                     # http://localhost:3000
 ```
+
+> `DATABASE_URL` tanımlandığı anda demo giriş kolaylığı otomatik kapanır ve
+> gerçek e-posta/şifre doğrulaması devreye girer. Ayrıca `DEMO_MODE=false`
+> yapmanız önerilir.
 
 Seed sonrası demo hesaplar (şifre `Tiverto!2026`, `SEED_PASSWORD` ile değiştirilebilir):
 
@@ -122,7 +146,13 @@ Seed sonrası demo hesaplar (şifre `Tiverto!2026`, `SEED_PASSWORD` ile değişt
 | `DIRECT_URL` | ✅ | Migration/RLS için doğrudan bağlantı (yönetici kullanıcı) |
 | `NEXT_PUBLIC_ROOT_DOMAIN` | ➖ | Vitrin subdomain kökü (`tiverto.app`). Boşsa subdomain yönlendirme kapalıdır; vitrin `/shop/[slug]` üzerinden çalışır |
 | `DEMO_MODE` | ➖ | `false` değilse arayüzlerde "Demo" bilgilendirmesi görünür |
+| `DEMO_FAKE_DATA` | ➖ | `true` ise `DATABASE_URL` tanımlı olsa bile bellek içi demo verisi kullanılır. **Canlı ortamda asla açmayın** |
 | `SEED_PASSWORD` | ➖ | Demo hesapların şifresi |
+
+**Demo katmanının açık olma koşulu:** `DEMO_MODE !== "false"` **VE**
+(`DATABASE_URL` tanımlı değil **VEYA** `DEMO_FAKE_DATA === "true"`).
+Yani veritabanı bağlandığında "her şifreyi kabul et" davranışı kendiliğinden
+kapanır; ek bir kod değişikliği gerekmez.
 
 Hassas değerler **asla** kaynak koduna yazılmaz; yalnızca ortam değişkeni olarak tutulur.
 
@@ -209,6 +239,7 @@ src/
     (public)               # /, /login, /register, /hesap-yok, /shop/[slug]
     panel/                 # işletme yönetim paneli (korumalı)
     admin/                 # merkez yönetim paneli (yalnızca platform admin)
+    musteri/               # müşteri "Siparişlerim" paneli (demo)
     api/health, api/upload # sağlık kontrolü + görsel yükleme
   actions/                 # server action'lar (mutasyonlar)
   components/              # arayüz bileşenleri
@@ -217,6 +248,10 @@ src/
     auth.ts                # şifre/oturum yardımcıları
     session.server.ts      # oturum + işletme bağlamı (server-only)
     constants.ts           # edge-güvenli sabitler (middleware bunu kullanır)
+    demo-config.ts         # DEMO_ACTIVE (sunucu tarafı, güvenlik koşulu)
+    demo-data.ts           # demo örnek verisi
+    demo-client.ts         # bellek içi Prisma benzeri istemci
+    demo-session.server.ts # demo oturum çerezleri / rol geçişi
     validation.ts          # form doğrulama yardımcıları
   middleware.ts            # edge: auth kapısı + subdomain rewriteları
 ```
@@ -283,11 +318,40 @@ src/
 
 ## 9. Demo modu
 
-- Veritabanı entegrasyonu tamamlandığı için veriler artık **kalıcıdır**; yine de
-  yayın ortamı tanıtım amaçlıdır.
-- `DEMO_MODE` kapalı değilse panel, admin ve vitrinde "Demo" bilgilendirmesi görünür.
-- **Gerçek müşteri/işletme bilgisi girilmemeli, gerçek ödeme alınmamalıdır.**
-- Demo sırasında girilen kayıtlar silinebilir.
+İki ayrı kavram vardır:
+
+| | `DEMO_MODE` | Demo veri katmanı (`DEMO_ACTIVE`) |
+|---|---|---|
+| Ne yapar? | Panel/admin/vitrinde "Demo" uyarı şeridi gösterir | Veritabanı yerine bellek içi örnek veri kullanır, giriş bilgilerini doğrulamaz |
+| Ne zaman açık? | `DEMO_MODE !== "false"` (varsayılan açık) | `DEMO_MODE` açık **ve** (`DATABASE_URL` yok veya `DEMO_FAKE_DATA=true`) |
+| Canlı ortam | Etiket olarak kalabilir | **Kapalı olmalı** — `DATABASE_URL` tanımlı olduğu için otomatik kapanır |
+
+### Demo veri katmanı (veritabanı bağlantısı yapılana kadar)
+
+- `src/lib/demo-data.ts` uydurulmuş işletmeler, ürünler, siparişler, müşteriler
+  vb. içerir; `src/lib/demo-client.ts` Prisma'nın bu projede kullanılan sorgu
+  alt kümesini (where/orderBy/include/select/aggregate/groupBy/create/update/
+  delete/transaction) taklit eder. `src/lib/db.ts` demo aktifken gerçek istemci
+  yerine bunu kullanır; sayfa ve action kodları **değişmez**.
+- `withTenant()` / `withPlatform()` içindeki RLS bağlamı `AsyncLocalStorage`
+  ile taklit edilir; işletme verisi yine yalnızca kendi tenant'ına görünür.
+- Giriş: `/login` ekranında e-posta + şifre **doğrulanmaz**, seçilen rol için
+  örnek hesapla oturum açılır. Üç rol ve hedefleri:
+  `admin → /admin`, `business → /panel`, `customer → /musteri` + `/shop/demo`.
+  Ana sayfadaki butonlar veya panellerin üstündeki "Demo" şeridi ile rol
+  değiştirmek için çıkış yapmaya gerek yoktur.
+- Normal müşteri deneyimi: `/shop/demo` herkese açık vitrin (ürün seç, sipariş
+  ver), `/musteri` ise "Siparişlerim" panelidir. Vitrinden verilen sipariş
+  demo sırasında işletme panelindeki `/panel/orders` ekranına düşer.
+- Demo sırasında yapılan ekleme/silme işlemleri aynı sunucu sürecinde görünür;
+  süreç yeniden başlayınca başlangıç verisine döner. **Hiçbir kayıt gerçek
+  veritabanına yazılmaz.**
+- `/api/health` demo katmanı açıkken `mode: "demo"` ve
+  `database: "demo-fake-data"` döner (gerçek DB kontrolü yapılmaz).
+
+> ⚠️ **Gerçek müşteri/işletme bilgisi girilmemeli, gerçek ödeme alınmamalıdır.**
+> Veritabanı bağlantısı kurulduğunda `DEMO_MODE=false` yapın; demo giriş
+> kolaylığı `DATABASE_URL` varlığında zaten otomatik olarak devre dışı kalır.
 
 ---
 
@@ -308,7 +372,9 @@ src/
 | `/panel` 500 / "İşletme bulunamadı" | `Session.activeTenantId` boş; çıkış yapıp yeniden giriş yapın |
 | Admin panelde liste boş | RLS fail-closed: platform sorguları `withPlatform()` kullanmalı |
 | Görseller deploy sonrası kayboluyor | Render diski geçici; kalıcı depolama henüz yok |
-| `prisma generate` motor indiremiyor | Bu depo native motor kullanmaz (`engineType = "client"`); yine de indirme deneniyorsa `prisma` sürümü 6.x mi kontrol edin |
+| `prisma generate` motor indiremiyor | `scripts/prisma-generate.mjs` (postinstall/build) indirmeyi atlar; `npm run build` ile tekrar deneyin |
+| Demo girişi açık kaldı / paneller boş | `DATABASE_URL` tanımlı mı? Demo veri katmanı yalnızca DB yokken açılır. `DEMO_FAKE_DATA=true` ile zorlayabilirsiniz (canlıda asla) |
+| Giriş yaptım ama /panel "İşletme hesabı bulunamadı" diyor | Müşteri rolüyle girilmiş; üstteki Demo şeridinden "İşletme Yetkilisi"ni seçin |
 | Panelde "İşletme bulunamadı" | `Session.activeTenantId` boş; çıkış yapıp yeniden giriş yapın |
 | Admin panelde liste boş / RLS etkisiz | `npm run db:rls` çıktısındaki superuser uyarısına bakın, `db:app-role` ile kısıtlı role geçin |
 

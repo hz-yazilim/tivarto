@@ -1,5 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { DEMO_ACTIVE } from "@/lib/demo-config";
+import { createDemoClient } from "@/lib/demo-client";
 
 /**
  * Tek Prisma istemcisi (dev'de hot-reload sırasında yeniden oluşmasın diye globalde tutulur).
@@ -33,9 +35,20 @@ function createClient() {
   });
 }
 
-export const prisma = globalForPrisma.prisma ?? createClient();
+/**
+ * DEMO MODU: `DATABASE_URL` yokken gerçek PrismaClient oluşturmak yerine bellek
+ * içi örnek veri istemcisi kullanılır. Böylece paneller veritabanı bağlantısı
+ * kurulmadan da gezilebilir. Veritabanı bağlandığında (DATABASE_URL tanımlı
+ * veya DEMO_MODE=false) bu dal tamamen devre dışı kalır ve gerçek istemci
+ * kullanılır; demo giriş kısayolu da otomatik olarak kapanır.
+ */
+export const prisma: PrismaClient = DEMO_ACTIVE
+  ? (createDemoClient() as unknown as PrismaClient)
+  : (globalForPrisma.prisma ?? createClient());
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+if (!DEMO_ACTIVE && process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
 
 /**
  * Transaction içinde kullanılabilen istemci tipi.
