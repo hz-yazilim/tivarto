@@ -1,90 +1,147 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getTenantContext } from "@/lib/session.server";
+import type { GoodsReceiptStatus } from "@prisma/client";
+import { requireTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
+import { optionalStr, str, toInt, type FormState } from "@/lib/validation";
 
-function toInt(s: string | undefined): number | undefined {
-  if (!s) return undefined;
-  const v = parseInt(s, 10);
-  return Number.isNaN(v) ? undefined : v;
+const RECEIPT_STATUSES: GoodsReceiptStatus[] = [
+  "PENDING",
+  "RECEIVED",
+  "PARTIAL",
+  "CANCELLED",
+];
+
+interface ParsedItem {
+  productId: string;
+  expectedQuantity: number;
+  receivedQuantity: number;
+  missingQuantity: number;
+  damagedQuantity: number;
+  note?: string;
 }
 
 export async function createGoodsReceiptAction(
-  prevState: any,
+  _prevState: FormState,
   formData: FormData
-) {
-  const { tenant } = await getTenantContext();
-  const supplierId = (formData.get("supplierId") as string) || undefined;
-  const status = (formData.get("status") as string) || "PENDING";
-  const note = (formData.get("note") as string) || undefined;
-  const itemsRaw = (formData.get("items") as string) || "[]";
+): Promise<FormState> {
+  const { tenant, user } = await requireTenantContext();
 
-  let items: any[];
+  const supplierId = optionalStr(formData, "supplierId") ?? null;
+  const statusRaw = str(formData, "status") || "PENDING";
+  const status = RECEIPT_STATUSES.includes(statusRaw as GoodsReceiptStatus)
+    ? (statusRaw as GoodsReceiptStatus)
+    : "PENDING";
+  const note = optionalStr(formData, "note");
+
+  let items: ParsedItem[];
   try {
-    items = JSON.parse(itemsRaw);
+    const parsed = JSON.parse(str(formData, "items") || "[]");
+    if (!Array.isArray(parsed)) throw new Error("invalid");
+    items = parsed;
   } catch {
     return { error: "Ürün listesi geçersiz." };
   }
-  if (!items.length) return { error: "En fazla bir ürün ekleyin." };
 
-  await withTenant(tenant.id, async (tx) => {
-    const receipt = await tx.goodsReceipt.create({
-      data: {
-        tenantId: tenant.id,
-        supplierId,
-        status: status as any,
-        note,
-      },
-    });
+  items = items.filter((it) => it && typeof it.productId === "string" && it.productId);
+  if (items.length === 0) {
+    return { error: "En az bir ürün ekleyin." };
+  }
+  if (items.length > 100) {
+    return { error: "Tek seferde en fazla 100 satır ekleyebilirsiniz." };
+  }
 
-    for (const it of items) {
-      const productId = it.productId as string;
-      const receivedQuantity = toInt(it.receivedQuantity as string) || 0;
-      const product = await tx.product.findFirst({
-        where: { id: productId, tenantId: tenant.id },
-      });
-      if (!product) continue;
+  try {
+    await withTenant(tenant.id, async (tx) => {
+      if (supplierId) {
+        const supplier = await tx.supplier.findFirst({
+          where: { id: supplierId, tenantId: tenant.id },
+          select: { id: true },
+        });
+        if (!supplier) throw new Error("Tedarikçi bulunamadı.");
+      }
 
-      await tx.goodsReceiptItem.create({
+      const receipt = await tx.goodsReceipt.create({
         data: {
           tenantId: tenant.id,
-          receiptId: receipt.id,
-          productId,
-          expectedQuantity: toInt(it.expectedQuantity as string) || 0,
-          receivedQuantity,
-          missingQuantity: toInt(it.missingQuantity as string) || 0,
-          damagedQuantity: toInt(it.damagedQuantity as string) || 0,
-          note: it.note || undefined,
+          supplierId,
+          status,
+          note,
+          receivedAt: status === "RECEIVED" ? new Date() : null,
         },
       });
 
-      if (receivedQuantity > 0) {
-        await tx.stockMovement.create({
+      for (const it of items) {
+        const product = await tx.product.findFirst({
+          where: { id: it.productId, tenantId: tenant.id },
+          select: { id: true },
+        });
+        if (!product) continue;
+
+        const receivedQuantity = Math.max(0, toInt(String(it.receivedQuantity ?? 0), 0));
+        const expectedQuantity = Math.max(0, toInt(String(it.expectedQuantity ?? 0), 0));
+        const missingQuantity = Math.max(0, toInt(String(it.missingQuantity ?? 0), 0));
+        const damagedQuantity = Math.max(0, toInt(String(it.damagedQuantity ?? 0), 0));
+
+        // Sadece sağlam teslim alınan ürünler stoğa girer.
+        const stockable =
+          status === "CANCELLED"
+            ? 0
+            : Math.max(0, receivedQuantity - damagedQuantity);
+
+        await tx.goodsReceiptItem.create({
           data: {
             tenantId: tenant.id,
-            productId,
-            type: "IN",
-            quantity: receivedQuantity,
-            note: `Mal kabul: ${receipt.id}`,
-            createdBy: "current-user",
+            receiptId: receipt.id,
+            productId: it.productId,
+            expectedQuantity,
+            receivedQuantity,
+            missingQuantity,
+            damagedQuantity,
+            note: it.note || undefined,
           },
         });
-        await tx.product.update({
-          where: { id: productId },
-          data: { stock: { increment: receivedQuantity } },
-        });
+
+        if (stockable > 0) {
+          await tx.stockMovement.create({
+            data: {
+              tenantId: tenant.id,
+              productId: it.productId,
+              type: "IN",
+              quantity: stockable,
+              note: `Mal kabul: ${receipt.id}`,
+              createdBy: user.id,
+            },
+          });
+          await tx.product.update({
+            where: { id: it.productId },
+            data: { stock: { increment: stockable } },
+          });
+        }
       }
-    }
 
-    if (status === "RECEIVED") {
-      await tx.goodsReceipt.update({
-        where: { id: receipt.id },
-        data: { receivedAt: new Date() },
+      await tx.auditLog.create({
+        data: {
+          tenantId: tenant.id,
+          userId: user.id,
+          action: "goodsReceipt.create",
+          entity: "GoodsReceipt",
+          entityId: receipt.id,
+        },
       });
-    }
-  });
+    });
+  } catch (error) {
+    console.error("goodsReceipt error", error);
+    return {
+      error:
+        error instanceof Error ? error.message : "Mal kabul kaydı oluşturulamadı.",
+    };
+  }
 
+  revalidatePath("/panel/receipts");
+  revalidatePath("/panel/stock");
   redirect("/panel/receipts");
 }
 
@@ -92,7 +149,8 @@ export async function listGoodsReceipts(tenantId: string) {
   return withTenant(tenantId, async (tx) => {
     return tx.goodsReceipt.findMany({
       orderBy: { createdAt: "desc" },
-      include: { supplier: true, items: { include: { product: true } } },
+      take: 100,
+      include: { supplier: true, items: true },
     });
   });
 }

@@ -1,81 +1,102 @@
 import { NextRequest, NextResponse } from "next/server";
-import { RESERVED_SLUGS } from "@/lib/reserved";
-import { validateSession, SESSION_COOKIE_NAME } from "@/lib/auth";
 
-const ROOT = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000";
-const rootHost = ROOT.split(":")[0];
+/**
+ * Middleware EDGE runtime'da çalışır: Prisma/bcrypt burada KULLANILAMAZ.
+ * Bu yüzden burada sadece çerez varlığına bakılır; oturumun geçerliliği
+ * sayfa/layout katmanında (Node.js runtime) doğrulanır.
+ */
+import { RESERVED_SLUGS, SESSION_COOKIE_NAME } from "./lib/constants";
+
+const ROOT = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "";
+const rootHost = ROOT.split(":")[0].toString().toLowerCase();
 
 // Platform yönetici panelinin bulunduğu yol öneki
 const ADMIN_PREFIX = "/admin";
 // Kiracı yönetim panelinin bulunduğu yol öneki
 const PANEL_PREFIX = "/panel";
 
-export async function middleware(req: NextRequest) {
+// Platform (apex) alanının bilinen parçaları — subdomain olarak değerlendirilmez.
+const PLATFORM_SUFFIXES = ["onrender.com", "vercel.app", "localhost"];
+
+function resolveShopSlug(hostname: string): string | null {
+  const host = hostname.replace(/\.$/, "").toLowerCase();
+  if (!host) return null;
+
+  // 1) Açıkça tanımlı kök alan adı (örn. NEXT_PUBLIC_ROOT_DOMAIN=panel.tivarto.com)
+  if (rootHost && host.endsWith(`.${rootHost}`)) {
+    return host.slice(0, -(rootHost.length + 1)) || null;
+  }
+
+  // 2) Kök alan adı tanımlı değilse (Render'ın *.onrender.com adresi gibi)
+  //    ilk etiketi yine de vitrin adresi olarak kabul etmeyelim: platform
+  //    alanlarında subdomain özelliği kapalıdır.
+  if (PLATFORM_SUFFIXES.some((suffix) => host === suffix || host.endsWith(`.${suffix}`))) {
+    return null;
+  }
+
+  return null;
+}
+
+export function middleware(req: NextRequest) {
   const host = (req.headers.get("host") ?? "").toLowerCase();
-  const url = req.nextUrl.clone();
   const hostname = host.split(":")[0];
-
+  const url = req.nextUrl.clone();
   const { pathname } = url;
-
-  // ---- Kimlik doğrulama koruması (panel ve admin) ----
-  const isPanelRoute = pathname === PANEL_PREFIX || pathname.startsWith(`${PANEL_PREFIX}/`);
-  const isAdminRoute = pathname === ADMIN_PREFIX || pathname.startsWith(`${ADMIN_PREFIX}/`);
-  const isAuthRoute =
-    pathname === "/login" || pathname === "/register" || pathname.startsWith("/api/");
 
   const sessionToken = req.cookies.get(SESSION_COOKIE_NAME)?.value;
 
-  if ((isPanelRoute || isAdminRoute) && !isAuthRoute) {
-    if (!sessionToken) {
-      url.pathname = "/login";
-      url.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(url);
-    }
+  const isPanelRoute =
+    pathname === PANEL_PREFIX || pathname.startsWith(`${PANEL_PREFIX}/`);
+  const isAdminRoute =
+    pathname === ADMIN_PREFIX || pathname.startsWith(`${ADMIN_PREFIX}/`);
 
-    // Session'ı doğrula (sadece korumalı rotalar için tek bir DB sorgusu).
-    const session = await validateSession(sessionToken);
-    if (!session) {
-      url.pathname = "/login";
-      url.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(url);
-    }
+  // Çıkış rotası her zaman erişilebilir olmalı; aksi halde süresi dolmuş
+  // oturumlar /login'e yönlendirilip çerez hiç temizlenmez (sonsuz döngü).
+  const isLogoutRoute = pathname === "/logout";
 
-    // Yönetici paneli sadece platform admini için.
-    if (isAdminRoute && !session.user.isPlatformAdmin) {
-      return new NextResponse(null, { status: 403 });
+  // ---- CSRF: server action isteklerinde Origin/Host uyumu ----
+  // Next.js'in önerdiği savunma: yabancı bir kaynaktan gelen POST action'ları
+  // reddedilir. `Origin` hiç yoksa (ör. bazı sunucu-sunucu çağrıları) istek
+  // engellenmez; varlığında ise host ile eşleşmesi şarttır.
+  const origin = req.headers.get("origin");
+  if (origin && req.method === "POST") {
+    let originHost = "";
+    try {
+      originHost = new URL(origin).host;
+    } catch {
+      originHost = "";
     }
-
-    return NextResponse.next();
+    if (originHost && originHost !== host) {
+      return new NextResponse("Geçersiz istek kaynağı.", { status: 403 });
+    }
   }
 
-  // Zaten giriş yapmışsa login/register sayfalarından panel'e yönlendir.
+  // ---- Kimlik doğrulama kapısı (sadece çerez kontrolü, DB'ye gitmeden) ----
+  if ((isPanelRoute || isAdminRoute) && !sessionToken && !isLogoutRoute) {
+    url.pathname = "/login";
+    url.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  // Zaten giriş yapmış görünen kullanıcıyı login/register'dan panele yönlendir.
   if (sessionToken && (pathname === "/login" || pathname === "/register")) {
-    const session = await validateSession(sessionToken);
-    if (session) {
-      url.pathname = session.user.isPlatformAdmin ? "/admin" : "/panel";
-      return NextResponse.redirect(url);
-    }
+    url.pathname = "/panel";
+    return NextResponse.redirect(url);
   }
 
   // ---- Subdomain yönlendirme (işletme vitrinleri) ----
-  // abcbaharat.platform.com -> "abcbaharat"
-  let slug: string | null = null;
-  if (hostname.endsWith("." + rootHost) && hostname !== rootHost) {
-    slug = hostname.slice(0, -(rootHost.length + 1));
-  }
-
-  // Ana site, panel, api, reserved: olduğu gibi devam
+  const slug = resolveShopSlug(hostname);
   if (!slug || RESERVED_SLUGS.has(slug)) {
     return NextResponse.next();
   }
 
-  // İşletme vitrini: /shop/[slug]/... yoluna yönlendir
+  // İşletme vitrini: subdomain'i /shop/[slug] yoluna rewrite et.
   url.pathname = `/shop/${slug}${pathname === "/" ? "" : pathname}`;
   return NextResponse.rewrite(url);
 }
 
 export const config = {
   matcher: [
-    "/((?!_next|api|favicon.ico|manifest.webmanifest|icons|uploads).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icons|uploads).*)",
   ],
 };

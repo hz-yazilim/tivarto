@@ -1,17 +1,19 @@
 "use server";
 
+import crypto from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
 import {
   hashPassword,
+  comparePassword,
   createSession,
   destroySession,
-  destroyAllSessionsForUser,
-  SESSION_COOKIE_NAME,
   SESSION_TTL_MS,
-  prisma,
 } from "@/lib/auth";
-import { isValidSlug } from "@/lib/reserved";
+import { isValidSlug, SESSION_COOKIE_NAME } from "@/lib/constants";
+import { prisma, withPlatform } from "@/lib/db";
+import { isValidEmail, str, type FormState } from "@/lib/validation";
 
 async function setSessionCookie(token: string) {
   const cookieStore = await cookies();
@@ -20,13 +22,27 @@ async function setSessionCookie(token: string) {
     path: "/",
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge: SESSION_TTL_MS / 1000,
+    maxAge: Math.floor(SESSION_TTL_MS / 1000),
   });
 }
 
-export async function loginAction(prevState: any, formData: FormData) {
-  const email = (formData.get("email") as string)?.trim().toLowerCase();
-  const password = formData.get("password") as string;
+async function clearSessionCookie() {
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE_NAME, "", {
+    httpOnly: true,
+    path: "/",
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 0,
+  });
+}
+
+export async function loginAction(
+  _prevState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const email = str(formData, "email").toLowerCase();
+  const password = str(formData, "password");
 
   if (!email || !password) {
     return { error: "E-posta ve şifre gereklidir." };
@@ -37,113 +53,150 @@ export async function loginAction(prevState: any, formData: FormData) {
     return { error: "E-posta veya şifre hatalı." };
   }
 
-  const valid = await requirePasswordCompare(password, user.passwordHash);
+  const valid = await comparePassword(password, user.passwordHash);
   if (!valid) {
     return { error: "E-posta veya şifre hatalı." };
   }
 
-  const token = await createSession(user.id);
-  setSessionCookie(token);
+  // Aktif işletmeyi oturum açılışında belirle (RLS: üyelik okuması için platform bağlamı).
+  const activeTenantId = await withPlatform(async (tx) => {
+    const membership = await tx.membership.findFirst({
+      where: { userId: user.id },
+      orderBy: { id: "asc" },
+      select: { tenantId: true },
+    });
+    return membership?.tenantId ?? null;
+  });
 
-  const isAdmin = user.isPlatformAdmin;
-  redirect(isAdmin ? "/admin" : "/panel");
+  const token = await createSession(user.id, activeTenantId);
+  await setSessionCookie(token);
+
+  redirect(user.isPlatformAdmin ? "/admin" : "/panel");
 }
 
-export async function registerAction(prevState: any, formData: FormData) {
-  const email = (formData.get("email") as string)?.trim().toLowerCase();
-  const password = formData.get("password") as string;
-  const name = (formData.get("name") as string)?.trim();
-  const businessName = (formData.get("businessName") as string)?.trim();
-  const slug = (formData.get("slug") as string)?.trim().toLowerCase();
-  const planId = (formData.get("planId") as string) || undefined;
+export async function registerAction(
+  _prevState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const email = str(formData, "email").toLowerCase();
+  const password = str(formData, "password");
+  const name = str(formData, "name");
+  const businessName = str(formData, "businessName");
+  const slug = str(formData, "slug").toLowerCase();
 
   if (!email || !password || !name || !businessName || !slug) {
     return { error: "Tüm alanları doldurun." };
   }
-  if (password.length < 6) {
-    return { error: "Şifre en az 6 karakter olmalıdır." };
+  if (!isValidEmail(email)) {
+    return { error: "Geçerli bir e-posta adresi girin." };
+  }
+  if (password.length < 8) {
+    return { error: "Şifre en az 8 karakter olmalıdır." };
   }
   if (!isValidSlug(slug)) {
-    return { error: "Geçersiz subdomain adı (sadece küçük harf, rakam ve tire; 3-30 karakter)." };
+    return {
+      error:
+        "Geçersiz mağaza adresi. Sadece küçük harf, rakam ve tire kullanın (3-30 karakter) ve rezerve isimlerden kaçının.",
+    };
   }
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
+  const [existingUser, existingTenant] = await Promise.all([
+    prisma.user.findUnique({ where: { email } }),
+    prisma.tenant.findUnique({ where: { slug } }),
+  ]);
   if (existingUser) {
     return { error: "Bu e-posta adresiyle kayıtlı bir hesap zaten var." };
   }
-
-  const existingTenant = await prisma.tenant.findUnique({ where: { slug } });
   if (existingTenant) {
-    return { error: "Bu subdomain adı zaten kullanımda." };
-  }
-
-  let plan = await prisma.plan.findFirst({
-    where: { name: { equals: "Başlangıç", mode: "insensitive" } },
-  });
-  if (planId) {
-    const p = await prisma.plan.findUnique({ where: { id: planId } });
-    if (p) plan = p;
-  }
-  if (!plan) {
-    plan = await prisma.plan.create({
-      data: { name: "Başlangıç", priceMonthly: 399, maxProducts: 500, maxStorageMb: 5000 },
-    });
+    return { error: "Bu mağaza adresi zaten kullanımda." };
   }
 
   const passwordHash = await hashPassword(password);
 
-  const user = await prisma.user.create({
-    data: { email, passwordHash, name },
-  });
-
-  const tenant = await prisma.tenant.create({
-    data: { slug, name: businessName, planId: plan.id },
-  });
-
-  await prisma.$transaction(async (tx: any) => {
-    await tx.membership.create({
-      data: { tenantId: tenant.id, userId: user.id, role: "OWNER" },
+  // Plan yoksa varsayılan planı oluştur (tek seferlik).
+  let plan = await prisma.plan.findFirst({ orderBy: { priceMonthly: "asc" } });
+  if (!plan) {
+    plan = await prisma.plan.create({
+      data: {
+        name: "Başlangıç",
+        priceMonthly: 399,
+        maxProducts: 500,
+        maxStorageMb: 5000,
+      },
     });
-    await tx.storeSettings.create({
-      data: { tenantId: tenant.id, theme: "default" },
-    });
-    await tx.category.createMany({
-      data: [
-        { name: "Genel", tenantId: tenant.id, sortOrder: 1 },
-        { name: "Gıda", tenantId: tenant.id, sortOrder: 2 },
-        { name: "İçecek", tenantId: tenant.id, sortOrder: 3 },
-        { name: "Temizlik", tenantId: tenant.id, sortOrder: 4 },
-      ],
-    });
-  });
+  }
 
-  const token = await createSession(user.id);
-  setSessionCookie(token);
+  const tenantId = crypto.randomUUID();
+  const userId = crypto.randomUUID();
+
+  try {
+    // Tek transaction: kullanıcı + işletme + üyelik + mağaza ayarları + başlangıç kategorileri.
+    await prisma.$transaction(async (tx) => {
+      // Yeni işletme kaydı: hem kendi tenant'ı hem platform görünürlüğü gerekir.
+      await tx.$executeRaw`SELECT set_config('app.platform', ${"on"}, true)`;
+      await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
+
+      await tx.user.create({
+        data: { id: userId, email, passwordHash, name },
+      });
+      await tx.tenant.create({
+        data: { id: tenantId, slug, name: businessName, planId: plan.id },
+      });
+      await tx.membership.create({
+        data: { tenantId, userId, role: "OWNER" },
+      });
+      await tx.storeSettings.create({
+        data: { tenantId, theme: "default" },
+      });
+      await tx.category.createMany({
+        data: [
+          { tenantId, name: "Genel", sortOrder: 1 },
+          { tenantId, name: "Gıda", sortOrder: 2 },
+          { tenantId, name: "İçecek", sortOrder: 3 },
+          { tenantId, name: "Temizlik", sortOrder: 4 },
+        ],
+      });
+      await tx.auditLog.create({
+        data: {
+          tenantId,
+          userId,
+          action: "tenant.create",
+          entity: "Tenant",
+          entityId: tenantId,
+        },
+      });
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { error: "Bu e-posta veya mağaza adresi zaten kullanımda." };
+    }
+    console.error("register error", error);
+    return {
+      error:
+        "Kayıt oluşturulamadı. Veritabanı bağlantısı yapılandırılmamış olabilir.",
+    };
+  }
+
+  const token = await createSession(userId, tenantId);
+  await setSessionCookie(token);
 
   redirect("/panel");
 }
 
-export async function logoutAction() {
+/** Oturumu kapatır ve giriş sayfasına yönlendirir. */
+export async function logoutAction(): Promise<void> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
     if (token) {
       await destroySession(token);
     }
-    cookieStore.set(SESSION_COOKIE_NAME, "", {
-      httpOnly: true,
-      path: "/",
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 0,
-    });
+    await clearSessionCookie();
   } catch {
-    // ignore
+    // Çıkış sırasında hata olsa da kullanıcıyı girişe gönder.
   }
   redirect("/login");
-}
-
-async function requirePasswordCompare(plain: string, hash: string): Promise<boolean> {
-  const { comparePassword } = await import("@/lib/auth");
-  return comparePassword(plain, hash);
 }

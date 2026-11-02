@@ -2,39 +2,63 @@
 
 import { useActionState } from "react";
 import { updateSettingsAction } from "@/actions/settings";
-import { Button } from "./ui/button";
+import { SubmitButton } from "./ui/submit-button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import type { FormState } from "@/lib/validation";
 
-interface SettingsFormProps {
-  initial: any;
+export interface StoreSettingsValues {
+  logoUrl: string | null;
+  coverUrl: string | null;
+  description: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  address: string | null;
+  mapsUrl: string | null;
+  theme: string;
 }
 
-export default function SettingsForm({ initial }: SettingsFormProps) {
-  const [state, formAction, isPending] = useActionState(updateSettingsAction, null);
+const selectClass =
+  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+export default function SettingsForm({
+  initial,
+}: {
+  initial: StoreSettingsValues | null;
+}) {
+  const [state, formAction] = useActionState<FormState, FormData>(
+    updateSettingsAction,
+    null
+  );
 
   return (
-    <>
+    <form action={formAction} className="space-y-6">
       {state?.ok && (
-        <div className="rounded-md bg-green-100 p-3 text-sm text-green-800 mb-4">
-          Ayarlar kaydedildi.
+        <div className="rounded-md bg-green-100 p-3 text-sm text-green-800">
+          {state.message ?? "Ayarlar kaydedildi."}
+        </div>
+      )}
+      {state?.error && (
+        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          {state.error}
         </div>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Görünüm ve İçerik</CardTitle>
+          <CardTitle className="text-base">Görünüm ve İçerik</CardTitle>
         </CardHeader>
         <CardContent className="p-5 pt-0">
-          <form action={formAction} className="space-y-4 max-w-2xl">
+          <div className="grid max-w-2xl gap-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1">
                 <Label htmlFor="logoUrl">Logo Görsel URL</Label>
                 <Input
                   id="logoUrl"
                   name="logoUrl"
-                  defaultValue={initial?.logoUrl || ""}
+                  defaultValue={initial?.logoUrl ?? ""}
                   placeholder="https://..."
                 />
               </div>
@@ -43,17 +67,18 @@ export default function SettingsForm({ initial }: SettingsFormProps) {
                 <Input
                   id="coverUrl"
                   name="coverUrl"
-                  defaultValue={initial?.coverUrl || ""}
+                  defaultValue={initial?.coverUrl ?? ""}
                   placeholder="https://..."
                 />
               </div>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="description">Açıklama</Label>
-              <Input
+              <Label htmlFor="description">Mağaza Açıklaması</Label>
+              <Textarea
                 id="description"
                 name="description"
-                defaultValue={initial?.description || ""}
+                rows={3}
+                defaultValue={initial?.description ?? ""}
               />
             </div>
             <div className="space-y-1">
@@ -61,44 +86,46 @@ export default function SettingsForm({ initial }: SettingsFormProps) {
               <select
                 id="theme"
                 name="theme"
-                defaultValue={initial?.theme || "default"}
-                className="border rounded px-3 py-2 w-full"
+                defaultValue={initial?.theme ?? "default"}
+                className={selectClass}
               >
                 <option value="default">Varsayılan</option>
                 <option value="modern">Modern</option>
                 <option value="minimal">Minimal</option>
               </select>
             </div>
-            <Button type="submit" disabled={isPending} className="w-auto">
-              Görünüm Ayarlarını Kaydet
-            </Button>
-          </form>
+          </div>
         </CardContent>
       </Card>
 
-      <Card className="mt-6">
+      <Card>
         <CardHeader>
-          <CardTitle>İletişim Bilgileri</CardTitle>
+          <CardTitle className="text-base">İletişim Bilgileri</CardTitle>
         </CardHeader>
         <CardContent className="p-5 pt-0">
-          <form action={formAction} className="space-y-4 max-w-2xl">
+          <div className="grid max-w-2xl gap-4">
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-1">
                 <Label htmlFor="phone">Telefon</Label>
-                <Input id="phone" name="phone" defaultValue={initial?.phone || ""} />
+                <Input
+                  id="phone"
+                  name="phone"
+                  defaultValue={initial?.phone ?? ""}
+                  placeholder="0532 123 45 67"
+                />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="whatsapp">WhatsApp Numarası</Label>
                 <Input
                   id="whatsapp"
                   name="whatsapp"
-                  defaultValue={initial?.whatsapp || ""}
-                  placeholder="0532 123 45 67"
+                  defaultValue={initial?.whatsapp ?? ""}
+                  placeholder="905321234567"
                 />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="address">Adres</Label>
-                <Input id="address" name="address" defaultValue={initial?.address || ""} />
+                <Input id="address" name="address" defaultValue={initial?.address ?? ""} />
               </div>
             </div>
             <div className="space-y-1">
@@ -106,16 +133,15 @@ export default function SettingsForm({ initial }: SettingsFormProps) {
               <Input
                 id="mapsUrl"
                 name="mapsUrl"
-                defaultValue={initial?.mapsUrl || ""}
+                defaultValue={initial?.mapsUrl ?? ""}
                 placeholder="https://maps.google.com/..."
               />
             </div>
-            <Button type="submit" disabled={isPending} className="w-auto">
-              İletişim Ayarlarını Kaydet
-            </Button>
-          </form>
+          </div>
         </CardContent>
       </Card>
-    </>
+
+      <SubmitButton>Tüm Ayarları Kaydet</SubmitButton>
+    </form>
   );
 }

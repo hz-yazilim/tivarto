@@ -7,16 +7,25 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "db:generate": "prisma generate"
+    "lint": "next lint",
+    "postinstall": "prisma generate",
+    "db:migrate:deploy": "node scripts/migrate.mjs",
+    "db:rls": "node scripts/apply-rls.mjs",
+    "db:seed": "node scripts/seed.mjs",
+    "db:app-role": "node scripts/create-app-role.mjs",
+    "db:setup": "node scripts/migrate.mjs && node scripts/apply-rls.mjs && node scripts/seed.mjs",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^6.19.3",
     "@prisma/client": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.454.0",
     "next": "^15.0.0",
+    "pg": "^8.23.1",
+    "prisma": "^6.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.5.0"
@@ -28,7 +37,6 @@
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
-    "prisma": "^6.0.0",
     "tailwindcss": "^3.4.14",
     "typescript": "^5.6.0"
   }

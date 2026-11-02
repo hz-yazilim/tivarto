@@ -2,8 +2,9 @@ import { getTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
 import { listGoodsReceipts } from "@/actions/receipts";
 import ReceiptForm from "@/components/receipt-form";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "Beklemede",
@@ -15,68 +16,77 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function ReceiptsPage() {
   const { tenant } = await getTenantContext();
 
-  const data = await withTenant(tenant.id, async (tx) => {
-    const [products, suppliers, receipts] = await Promise.all([
-      tx.product.findMany({ orderBy: { name: "asc" } }),
-      tx.supplier.findMany({ orderBy: { name: "asc" } }),
-      listGoodsReceipts(tenant.id),
-    ]);
-    return { products, suppliers, receipts };
-  });
+  // DİKKAT: listGoodsReceipts kendi transaction'ını açtığı için
+  // başka bir withTenant bloğunun İÇİNDE çağrılmamalıdır.
+  const [products, suppliers, receipts] = await Promise.all([
+    withTenant(tenant.id, (tx) =>
+      tx.product.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+    ),
+    withTenant(tenant.id, (tx) =>
+      tx.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+    ),
+    listGoodsReceipts(tenant.id),
+  ]);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Mal Kabul Yönetimi</h1>
-          <p className="text-muted-foreground text-sm">
-            Tedarikçiden gelen ürünleri kaydedin ve stoğa ekleyin.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold">Mal Kabul Yönetimi</h1>
+        <p className="text-sm text-muted-foreground">
+          Tedarikçiden gelen ürünleri kaydedin; sağlam teslim alınan miktar stoğa
+          eklenir.
+        </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Yeni Mal Kabul Kaydı</CardTitle>
+          <CardTitle className="text-base">Yeni Mal Kabul Kaydı</CardTitle>
         </CardHeader>
         <CardContent className="p-5 pt-0">
-          <ReceiptForm products={data.products} suppliers={data.suppliers} />
+          <ReceiptForm products={products} suppliers={suppliers} />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Mal Kabul Geçmişi</CardTitle>
+          <CardTitle className="text-base">Mal Kabul Geçmişi</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <div className="divide-y divide-border">
-            {data.receipts.length > 0 ? (
-              data.receipts.map((r: any) => (
-                <div key={r.id} className="p-4 flex flex-col md:flex-row md:items-center gap-4">
+            {receipts.length > 0 ? (
+              receipts.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex flex-col gap-3 p-4 md:flex-row md:items-center"
+                >
                   <div className="flex-1">
-                    <div className="font-medium">
-                      Mal Kabul #{r.id.slice(-6)}
-                    </div>
+                    <div className="font-medium">Mal Kabul #{r.id.slice(-6)}</div>
                     <div className="text-sm text-muted-foreground">
-                      {r.supplier?.name || "Tedarikçi seçilmedi"} ·
+                      {r.supplier?.name ?? "Tedarikçi seçilmedi"} ·{" "}
                       {new Date(r.createdAt).toLocaleString("tr-TR")}
                     </div>
                     {r.note && (
-                      <p className="text-sm text-muted-foreground mt-1">{r.note}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{r.note}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusBadgeColor(r.status)}`}>
-                      {STATUS_LABEL[r.status]}
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-medium ${statusBadgeColor(
+                        r.status
+                      )}`}
+                    >
+                      {STATUS_LABEL[r.status] ?? r.status}
                     </span>
                     <div className="text-right text-sm font-medium">
-                      {r.items.reduce((sum: number, it: any) => sum + it.receivedQuantity, 0)} adet
+                      {r.items.reduce((sum, it) => sum + it.receivedQuantity, 0)} adet
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-center text-muted-foreground p-4">Henüz mal kabul kaydı yok.</p>
+              <p className="p-8 text-center text-muted-foreground">
+                Henüz mal kabul kaydı yok.
+              </p>
             )}
           </div>
         </CardContent>
@@ -92,5 +102,5 @@ function statusBadgeColor(s: string) {
     PARTIAL: "bg-orange-100 text-orange-800",
     CANCELLED: "bg-red-100 text-red-800",
   };
-  return map[s] || "bg-muted text-muted-foreground";
+  return map[s] ?? "bg-muted text-muted-foreground";
 }

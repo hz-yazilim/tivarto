@@ -1,7 +1,16 @@
 node_modules
 .next
+out
+build
+dist
+
 .env
 .env.local
+.env.*.local
+
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# Yüklenen görseller (geçici; kalıcı depolama henüz yok)
+public/uploads

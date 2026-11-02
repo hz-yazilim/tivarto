@@ -1,12 +1,8 @@
-"use node";
-
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 
 const SALT_ROUNDS = 12;
-
-export const prisma = new PrismaClient();
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
@@ -26,7 +22,10 @@ export function generateSessionToken(): string {
 export const SESSION_COOKIE_NAME = "tivarto_session";
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 gün
 
-export async function createSession(userId: string): Promise<string> {
+export async function createSession(
+  userId: string,
+  activeTenantId?: string | null
+): Promise<string> {
   const token = generateSessionToken();
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
 
@@ -34,6 +33,7 @@ export async function createSession(userId: string): Promise<string> {
     data: {
       token,
       userId,
+      activeTenantId: activeTenantId ?? null,
       expiresAt,
     },
   });
@@ -60,7 +60,14 @@ export interface ValidSession {
   };
 }
 
-export async function validateSession(token: string | undefined): Promise<ValidSession | null> {
+/**
+ * Oturum belirtecini doğrular.
+ * NOT: Bu fonksiyon Node.js runtime'a ihtiyaç duyar (Prisma + bcrypt).
+ * Edge middleware içinden çağrılmamalıdır; middleware sadece çerez varlığına bakar.
+ */
+export async function validateSession(
+  token: string | undefined
+): Promise<ValidSession | null> {
   if (!token) return null;
 
   const session = await prisma.session.findFirst({
@@ -73,11 +80,6 @@ export async function validateSession(token: string | undefined): Promise<ValidS
 
   if (!session || !session.user) return null;
 
-  // Süresi dolmuşları temizle (beste effort).
-  await prisma.session
-    .deleteMany({ where: { expiresAt: { lte: new Date() } } })
-    .catch(() => {});
-
   return {
     user: {
       id: session.user.id,
@@ -86,4 +88,12 @@ export async function validateSession(token: string | undefined): Promise<ValidS
       isPlatformAdmin: session.user.isPlatformAdmin,
     },
   };
+}
+
+/** Süresi geçmiş oturumları temizler (cron/health çağrısı için). */
+export async function pruneExpiredSessions(): Promise<number> {
+  const result = await prisma.session.deleteMany({
+    where: { expiresAt: { lte: new Date() } },
+  });
+  return result.count;
 }

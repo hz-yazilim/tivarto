@@ -10,17 +10,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm install
-      - run: npx prisma generate
+
+      - name: Bağımlılıkları kur
+        run: npm ci
+
+      - name: Prisma Client üret
+        run: npx prisma generate
         env:
           DATABASE_URL: postgresql://x:x@localhost:5432/x
           DIRECT_URL: postgresql://x:x@localhost:5432/x
-      - run: npm run typecheck
-      - run: npx prisma validate
+
+      - name: Şema doğrula
+        run: npx prisma validate
+        env:
+          DATABASE_URL: postgresql://x:x@localhost:5432/x
+          DIRECT_URL: postgresql://x:x@localhost:5432/x
+
+      - name: Tip kontrolü
+        run: npm run typecheck
+
+      - name: Üretim derlemesi
+        run: npm run build
         env:
           DATABASE_URL: postgresql://x:x@localhost:5432/x
           DIRECT_URL: postgresql://x:x@localhost:5432/x

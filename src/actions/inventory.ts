@@ -1,85 +1,95 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getTenantContext } from "@/lib/session.server";
+import { requireTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
+import { optionalStr, str, toInt } from "@/lib/validation";
 
-function toInt(s: string | undefined): number | undefined {
-  if (!s) return undefined;
-  const v = parseInt(s, 10);
-  return Number.isNaN(v) ? undefined : v;
-}
+export async function createStockMovementAction(
+  formData: FormData
+): Promise<void> {
+  const { tenant, user } = await requireTenantContext();
+  const productId = str(formData, "productId");
+  const type = str(formData, "type");
+  const quantity = toInt(str(formData, "quantity"), 0);
+  const note = optionalStr(formData, "note");
 
-export async function createStockMovementAction(formData: FormData): Promise<void> {
-  const { tenant } = await getTenantContext();
-  const productId = formData.get("productId") as string;
-  const type = formData.get("type") as string;
-  const quantity = toInt(formData.get("quantity") as string);
-  const note = (formData.get("note") as string) || undefined;
-
-  if (!productId || !type || !quantity || quantity <= 0) return;
+  if (!productId) return;
+  if (!["IN", "OUT", "ADJUST"].includes(type)) return;
+  if (quantity <= 0) return;
 
   await withTenant(tenant.id, async (tx) => {
     const product = await tx.product.findFirst({
       where: { id: productId, tenantId: tenant.id },
+      select: { id: true, stock: true },
     });
     if (!product) return;
 
-    let stockDelta = 0;
-    if (type === "IN") stockDelta = quantity;
-    else if (type === "OUT") stockDelta = -quantity;
+    let newStock = product.stock;
+    if (type === "IN") newStock += quantity;
+    else if (type === "OUT") newStock = Math.max(0, product.stock - quantity);
+    else newStock = quantity; // ADJUST: girilen miktar yeni stok olur
 
     await tx.stockMovement.create({
       data: {
         tenantId: tenant.id,
         productId,
-        type: type as any,
+        type: type as "IN" | "OUT" | "ADJUST",
         quantity,
         note,
-        createdBy: "current-user",
+        createdBy: user.id,
       },
     });
 
-    if (type !== "ADJUST") {
-      await tx.product.update({
-        where: { id: productId },
-        data: { stock: { increment: stockDelta } },
-      });
-    }
-  });
-
-  redirect("/panel/stock");
-}
-
-export async function adjustStockAction(formData: FormData): Promise<void> {
-  const { tenant } = await getTenantContext();
-  const productId = formData.get("productId") as string;
-  const newStock = toInt(formData.get("newStock") as string);
-  const note = (formData.get("note") as string) || undefined;
-  if (!productId || newStock === undefined || newStock < 0) return;
-
-  await withTenant(tenant.id, async (tx) => {
-    const product = await tx.product.findFirst({
-      where: { id: productId, tenantId: tenant.id },
-    });
-    if (!product) return;
-
-    const diff = newStock - product.stock;
     await tx.product.update({
       where: { id: productId },
       data: { stock: newStock },
     });
+  });
+
+  revalidatePath("/panel/stock");
+  redirect("/panel/stock");
+}
+
+export async function adjustStockAction(formData: FormData): Promise<void> {
+  const { tenant, user } = await requireTenantContext();
+  const productId = str(formData, "productId");
+  const newStock = toInt(str(formData, "newStock"), -1);
+  const note = optionalStr(formData, "note");
+  if (!productId || newStock < 0) return;
+
+  await withTenant(tenant.id, async (tx) => {
+    const product = await tx.product.findFirst({
+      where: { id: productId, tenantId: tenant.id },
+      select: { id: true, stock: true },
+    });
+    if (!product) return;
+
+    const diff = newStock - product.stock;
+    if (diff === 0) return;
+
+    await tx.product.update({
+      where: { id: productId },
+      data: { stock: newStock },
+    });
+
     await tx.stockMovement.create({
       data: {
         tenantId: tenant.id,
         productId,
         type: "ADJUST",
         quantity: Math.abs(diff),
-        note: note || (diff >= 0 ? "Stok sayımı ile artırıldı" : "Stok sayımı ile azaltıldı"),
-        createdBy: "current-user",
+        note:
+          note ??
+          (diff > 0
+            ? "Stok sayımı ile artırıldı"
+            : "Stok sayımı ile azaltıldı"),
+        createdBy: user.id,
       },
     });
   });
 
+  revalidatePath("/panel/stock");
   redirect("/panel/stock");
 }

@@ -1,56 +1,84 @@
 import { getTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
 import { createStockMovementAction, adjustStockAction } from "@/actions/inventory";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const MOVEMENT_OPTIONS: Array<{ value: string; label: string }> = [
+export const dynamic = "force-dynamic";
+
+const MOVEMENT_OPTIONS = [
   { value: "IN", label: "Stok Girişi" },
   { value: "OUT", label: "Stok Çıkışı" },
-  { value: "ADJUST", label: "Manuel Düzelme" },
 ];
+
+const selectClass =
+  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export default async function StockPage() {
   const { tenant } = await getTenantContext();
 
   const data = await withTenant(tenant.id, async (tx) => {
-    const products = await tx.product.findMany({
-      orderBy: { name: "asc" },
-      include: { category: true },
-    });
-    const movements = await tx.stockMovement.findMany({
-      take: 30,
-      orderBy: { createdAt: "desc" },
-      include: { product: true },
-    });
+    const [products, movements] = await Promise.all([
+      tx.product.findMany({
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          stock: true,
+          minStock: true,
+          isActive: true,
+        },
+      }),
+      tx.stockMovement.findMany({
+        take: 30,
+        orderBy: { createdAt: "desc" },
+        include: { product: { select: { name: true } } },
+      }),
+    ]);
     return { products, movements };
   });
 
+  const critical = data.products.filter((p) => p.isActive && p.stock <= p.minStock);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Stok Yönetimi</h1>
-          <p className="text-muted-foreground text-sm">
-            Stok giriş-çıkış kayıtlarını tutun ve stok sayımı yapın.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold">Stok Yönetimi</h1>
+        <p className="text-sm text-muted-foreground">
+          Stok giriş-çıkış kayıtlarını tutun ve sayım sonucu düzeltme yapın.
+        </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      {data.products.length === 0 && (
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+          Önce ürün eklemelisiniz. Stok işlemleri için{" "}
+          <a href="/panel/products" className="font-medium underline">
+            Ürünler
+          </a>{" "}
+          sayfasını kullanın.
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Stok Girişi / Çıkışı</CardTitle>
+            <CardTitle className="text-base">Stok Girişi / Çıkışı</CardTitle>
           </CardHeader>
           <CardContent className="p-5 pt-0">
             <form action={createStockMovementAction} className="space-y-3">
               <div className="space-y-1">
                 <Label htmlFor="productId">Ürün</Label>
-                <select id="productId" name="productId" required className="w-full border rounded px-2 py-2">
+                <select
+                  id="productId"
+                  name="productId"
+                  required
+                  className={selectClass}
+                  disabled={data.products.length === 0}
+                >
                   <option value="">Seçiniz</option>
-                  {data.products.map((p: any) => (
+                  {data.products.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name} ({p.stock} adet)
                     </option>
@@ -59,8 +87,8 @@ export default async function StockPage() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="type">İşlem Türü</Label>
-                <select id="type" name="type" className="w-full border rounded px-2 py-2">
-                  {MOVEMENT_OPTIONS.map((o: any) => (
+                <select id="type" name="type" className={selectClass}>
+                  {MOVEMENT_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}
                     </option>
@@ -73,26 +101,34 @@ export default async function StockPage() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="note">Açıklama</Label>
-                <Input id="note" name="note" placeholder="Örn. Yeni malteslim" />
+                <Input id="note" name="note" placeholder="Örn. Perakende satış" />
               </div>
-              <Button type="submit">Kaydet</Button>
+              <SubmitButton disabled={data.products.length === 0}>
+                Kaydet
+              </SubmitButton>
             </form>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Stok Sayımı (Düzeltme)</CardTitle>
+            <CardTitle className="text-base">Stok Sayımı (Düzeltme)</CardTitle>
           </CardHeader>
           <CardContent className="p-5 pt-0">
             <form action={adjustStockAction} className="space-y-3">
               <div className="space-y-1">
                 <Label htmlFor="productId2">Ürün</Label>
-                <select id="productId2" name="productId" required className="w-full border rounded px-2 py-2">
+                <select
+                  id="productId2"
+                  name="productId"
+                  required
+                  className={selectClass}
+                  disabled={data.products.length === 0}
+                >
                   <option value="">Seçiniz</option>
-                  {data.products.map((p: any) => (
+                  {data.products.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name}
+                      {p.name} ({p.stock} adet)
                     </option>
                   ))}
                 </select>
@@ -105,32 +141,32 @@ export default async function StockPage() {
                 <Label htmlFor="note2">Açıklama</Label>
                 <Input id="note2" name="note" placeholder="Stok sayımı sonucu" />
               </div>
-              <Button type="submit">Stok Güncelle</Button>
+              <SubmitButton disabled={data.products.length === 0}>
+                Stok Güncelle
+              </SubmitButton>
             </form>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Kritik Stok Uyarısı</CardTitle>
+            <CardTitle className="text-base">Kritik Stok Uyarısı</CardTitle>
           </CardHeader>
           <CardContent className="p-5 pt-0">
-            <p className="text-sm text-muted-foreground mb-3">
-              Aşağıdaki ürünler kritik stok seviyesinde veya altında:
+            <p className="mb-3 text-sm text-muted-foreground">
+              Kritik seviyede veya altında olan aktif ürünler:
             </p>
             <ul className="space-y-2 text-sm">
-              {data.products
-                .filter((p: any) => p.isActive && p.stock <= p.minStock)
-                .slice(0, 8)
-                .map((p: any) => (
-                  <li key={p.id} className="flex items-center justify-between">
-                    <span className="font-medium">{p.name}</span>
-                    <span className="text-red-600 font-bold">
+              {critical.length > 0 ? (
+                critical.slice(0, 8).map((p) => (
+                  <li key={p.id} className="flex items-center justify-between gap-2">
+                    <span className="truncate font-medium">{p.name}</span>
+                    <span className="font-bold text-red-600">
                       {p.stock} / {p.minStock}
                     </span>
                   </li>
-                ))}
-              {data.products.filter((p: any) => p.isActive && p.stock <= p.minStock).length === 0 && (
+                ))
+              ) : (
                 <li className="text-muted-foreground">Kritik stokta ürün yok.</li>
               )}
             </ul>
@@ -140,31 +176,48 @@ export default async function StockPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Son Stok Hareketleri</CardTitle>
+          <CardTitle className="text-base">Son Stok Hareketleri</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <div className="divide-y divide-border">
             {data.movements.length > 0 ? (
-              data.movements.map((m: any) => (
-                <div key={m.id} className="flex items-center justify-between p-3">
-                  <div>
-                    <div className="font-medium">{m.product?.name || "-"}</div>
+              data.movements.map((m) => (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between gap-3 p-3"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate font-medium">
+                      {m.product?.name ?? "-"}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {new Date(m.createdAt).toLocaleString("tr-TR")}
+                      {m.note ? ` · ${m.note}` : ""}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className={`font-medium ${m.type === "IN" ? "text-green-700" : m.type === "OUT" ? "text-red-700" : "text-muted-foreground"}`}>
-                      {m.type === "IN" ? "+" : m.type === "OUT" ? "-" : "~"}{m.quantity}
+                    <div
+                      className={`font-medium ${
+                        m.type === "IN"
+                          ? "text-green-700"
+                          : m.type === "OUT"
+                            ? "text-red-700"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      {m.type === "IN" ? "+" : m.type === "OUT" ? "-" : "~"}
+                      {m.quantity}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {m.type === "IN" ? "Giriş" : m.type === "OUT" ? "Çıkış" : "Düzelme"}
+                      {m.type === "IN" ? "Giriş" : m.type === "OUT" ? "Çıkış" : "Düzeltme"}
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-center text-muted-foreground p-4">Henüz hareket yok.</p>
+              <p className="p-8 text-center text-muted-foreground">
+                Henüz hareket yok.
+              </p>
             )}
           </div>
         </CardContent>

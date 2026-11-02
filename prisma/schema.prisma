@@ -1,5 +1,9 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  // Rust'suz istemci: native query engine ikilisi indirilmez/kullanılmaz.
+  // Sorgular WASM query compiler + @prisma/adapter-pg üzerinden çalışır.
+  engineType      = "client"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -62,11 +66,14 @@ model User {
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  userId       String
-  token        String   @unique
-  expiresAt    DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  userId         String
+  token          String   @unique
+  // Oturum açıkken seçili işletme (tenant seçimi oturumda taşınır).
+  activeTenantId String?
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([token])
