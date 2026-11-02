@@ -1,6 +1,6 @@
 import LoginForm from "@/components/login-form";
 import DemoRoleSwitcher from "@/components/demo-role-switcher";
-import { inferDemoRole, safeCallbackUrl } from "@/lib/constants";
+import { safeCallbackUrl } from "@/lib/constants";
 import { DEMO_ACTIVE } from "@/lib/demo-config";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,6 @@ export default async function LoginPage({
 }) {
   const { callbackUrl: rawCallback } = await searchParams;
   const callbackUrl = safeCallbackUrl(rawCallback) ?? "";
-  const defaultRole = inferDemoRole("", callbackUrl);
 
   return (
     <div className="min-h-[calc(100vh-4rem)] px-6 py-10">
@@ -24,19 +23,21 @@ export default async function LoginPage({
           </p>
         </div>
 
-        <LoginForm
-          demoActive={DEMO_ACTIVE}
-          callbackUrl={callbackUrl}
-          defaultRole={defaultRole}
-        />
-
-        {DEMO_ACTIVE && (
-          <div className="mt-6">
-            <p className="mb-2 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              veya tek tıkla demo girişi
-            </p>
+        {DEMO_ACTIVE ? (
+          <div>
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+              <strong>Şifreyle giriş geçici olarak kapalı.</strong> Devam etmek
+              için aşağıdan bir demo paneli seçin; herhangi bir e-posta veya
+              şifre gerekmez.
+            </div>
             <DemoRoleSwitcher callbackUrl={callbackUrl} />
           </div>
+        ) : (
+          <LoginForm
+            demoActive={false}
+            callbackUrl={callbackUrl}
+            defaultRole="business"
+          />
         )}
       </div>
     </div>

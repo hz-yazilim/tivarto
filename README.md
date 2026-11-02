@@ -32,11 +32,12 @@ panelinden (`/admin`) işletmeleri, paketleri ve ödemeleri yönetir.
 | Müşteri (demo) | `/musteri` | Siparişlerim + `/shop/demo` vitrininden alışveriş |
 | Anonim | `/`, `/login`, `/register`, `/shop/[slug]` | Vitrinden sipariş verebilir |
 
-> **Demo hızlı giriş:** Veritabanı yokken `/login` ekranındaki "Açılacak panel"
-> seçimi veya ana sayfadaki üç buton ile **Platform Yöneticisi / İşletme
-> Yetkilisi / Müşteri** rollerinden biriyle giriş yapılır. Girilen e-posta ve
-> şifre doğrulanmaz; tüm paneller örnek verilerle açılır. Panellerin üstündeki
-> "Demo" şeridinden rol değiştirilebilir.
+> **Demo hızlı giriş:** Demo katmanı açıkken (`DATABASE_URL` tanımlı değilse)
+> `/login` ekranında şifreyle giriş geçici olarak kapalıdır. Bir panel rolüne
+> tıklayarak e-posta veya şifre girmeden **Platform Yöneticisi / İşletme
+> Yetkilisi / Müşteri** olarak devam edebilirsiniz. Ana sayfadan da tek tıkla
+> panele geçiş yapılabilir. Veritabanı bağlandığında demo girişi kapanır ve
+> normal e-posta/şifre girişi otomatik olarak devreye girer.
 
 ---
 
