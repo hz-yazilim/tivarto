@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
@@ -13,9 +13,9 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
  */
 export async function withTenant<T>(
   tenantId: string,
-  fn: (tx: Prisma.TransactionClient) => Promise<T>
+  fn: (tx: PrismaClient) => Promise<T>
 ): Promise<T> {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: PrismaClient) => {
     await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
     return fn(tx);
   });

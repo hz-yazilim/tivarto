@@ -1,18 +1,16 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Tivarto",
-  description: "Küçük işletmeler için yönetim paneli ve dijital mağaza",
+  description: "Küçük işletmeler için yönetim paneli ve dijital mağaza platformu",
   manifest: "/manifest.webmanifest",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr">
-      <body style={{ fontFamily: "system-ui, sans-serif", margin: 0 }}>
-        {children}
-      </body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

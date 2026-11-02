@@ -32,26 +32,47 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
 // ---------- Platform seviyesi (tenant_id YOK) ----------
 
 model Plan {
   id           String   @id @default(cuid())
   name         String   @unique
-  priceMonthly Int
+  priceMonthly Int      // TL cinsinden aylık ücret
   maxProducts  Int
   maxStorageMb Int
   tenants      Tenant[]
 }
 
 model User {
-  id           String       @id @default(cuid())
-  email        String       @unique
-  passwordHash String
-  name         String
+  id            String       @id @default(cuid())
+  email         String       @unique
+  passwordHash  String
+  name          String
   isPlatformAdmin Boolean   @default(false)
-  createdAt    DateTime     @default(now())
-  memberships  Membership[]
+  createdAt     DateTime     @default(now())
+  memberships   Membership[]
+  sessions      Session[]
 }
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  token        String   @unique
+  expiresAt    DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+// ---------- Tenant verisi (tenantId'li + RLS) ----------
 
 model Tenant {
   id        String       @id @default(cuid())
@@ -62,16 +83,17 @@ model Tenant {
   plan      Plan         @relation(fields: [planId], references: [id])
   createdAt DateTime     @default(now())
 
-  memberships   Membership[]
-  categories    Category[]
-  products      Product[]
-  stockMovements StockMovement[]
-  orders        Order[]
-  auditLogs     AuditLog[]
-  storeSettings StoreSettings?
+  memberships     Membership[]
+  categories      Category[]
+  products        Product[]
+  stockMovements  StockMovement[]
+  orders          Order[]
+  customers       Customer[]
+  suppliers       Supplier[]
+  auditLogs       AuditLog[]
+  storeSettings   StoreSettings?
+  payments        Payment[]
 }
-
-// ---------- Tenant verisi (hepsinde tenantId + RLS) ----------
 
 model Membership {
   id       String @id @default(cuid())
@@ -152,9 +174,82 @@ model StockMovement {
   @@index([tenantId, productId])
 }
 
+model Customer {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  orders Order[]
+
+  @@index([tenantId])
+}
+
+model Supplier {
+  id             String   @id @default(cuid())
+  tenantId       String
+  name           String
+  contactPerson  String?
+  phone          String?
+  email          String?
+  address        String?
+  createdAt      DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+enum GoodsReceiptStatus {
+  PENDING
+  RECEIVED
+  PARTIAL
+  CANCELLED
+}
+
+model GoodsReceipt {
+  id          String                 @id @default(cuid())
+  tenantId    String
+  supplierId  String?
+  status      GoodsReceiptStatus     @default(PENDING)
+  note        String?
+  receivedAt  DateTime?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+  items GoodsReceiptItem[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
+model GoodsReceiptItem {
+  id             String   @id @default(cuid())
+  tenantId       String
+  receiptId      String
+  productId      String
+  expectedQuantity Int
+  receivedQuantity Int     @default(0)
+  missingQuantity  Int     @default(0)
+  damagedQuantity  Int     @default(0)
+  note           String?
+
+  receipt GoodsReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([tenantId, receiptId])
+}
+
 model Order {
   id            String      @id @default(cuid())
   tenantId      String
+  customerId    String?
   status        OrderStatus @default(NEW)
   customerName  String
   customerPhone String
@@ -164,6 +259,7 @@ model Order {
   createdAt     DateTime    @default(now())
 
   tenant Tenant      @relation(fields: [tenantId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
   items  OrderItem[]
 
   @@index([tenantId, status])
@@ -196,4 +292,18 @@ model AuditLog {
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, createdAt])
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  tenantId    String
+  amount      Decimal  @db.Decimal(12, 2)
+  status      PaymentStatus @default(PENDING)
+  description String?
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
 }
