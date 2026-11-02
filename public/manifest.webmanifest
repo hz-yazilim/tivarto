@@ -1,0 +1,10 @@
+{
+  "name": "Tivarto",
+  "short_name": "Tivarto",
+  "start_url": "/panel",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f766e",
+  "lang": "tr",
+  "icons": []
+}
