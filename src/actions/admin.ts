@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { TenantStatus } from "@prisma/client";
 import { requireSession } from "@/lib/session.server";
 import { prisma } from "@/lib/auth";
 
@@ -42,7 +43,7 @@ export async function updateTenantStatus(formData: FormData): Promise<void> {
   const session = await requireSession();
   if (!session.user.isPlatformAdmin) return;
   const id = formData.get("id") as string;
-  const status = formData.get("status") as string;
+  const status = formData.get("status") as TenantStatus;
   if (!id || !status) return;
   await prisma.tenant.update({ where: { id }, data: { status } });
   redirect("/admin/tenants");
