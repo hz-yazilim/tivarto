@@ -93,6 +93,7 @@ model Tenant {
   auditLogs       AuditLog[]
   storeSettings   StoreSettings?
   payments        Payment[]
+  goodsReceipts   GoodsReceipt[]
 }
 
 model Membership {
@@ -149,10 +150,11 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenant     Tenant          @relation(fields: [tenantId], references: [id])
-  category   Category?       @relation(fields: [categoryId], references: [id])
+  tenant     Tenant               @relation(fields: [tenantId], references: [id])
+  category   Category?            @relation(fields: [categoryId], references: [id])
   movements  StockMovement[]
   orderItems OrderItem[]
+  goodsReceiptItems GoodsReceiptItem[]
 
   @@index([tenantId])
   @@index([tenantId, barcode])
@@ -199,7 +201,8 @@ model Supplier {
   address        String?
   createdAt      DateTime @default(now())
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
+  tenant         Tenant       @relation(fields: [tenantId], references: [id])
+  goodsReceipts  GoodsReceipt[]
 
   @@index([tenantId])
 }
