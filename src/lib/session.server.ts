@@ -1,18 +1,24 @@
 import { cookies } from "next/headers";
-import { PrismaClient } from "@prisma/client";
+import { redirect } from "next/navigation";
+import type { Membership, Tenant } from "@prisma/client";
 import {
   validateSession,
   SESSION_COOKIE_NAME,
-  prisma,
   type ValidSession,
 } from "@/lib/auth";
+import { prisma, withPlatform, withTenant } from "@/lib/db";
 
+export type SessionUser = ValidSession["user"];
+
+/** Çerezdeki oturumu (varsa) döner. */
 export async function getSession(): Promise<ValidSession | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  if (!token) return null;
   return validateSession(token);
 }
 
+/** Oturum yoksa hata fırlatır (kütüphane içi kullanım). */
 export async function requireSession(): Promise<ValidSession> {
   const session = await getSession();
   if (!session) {
@@ -21,26 +27,118 @@ export async function requireSession(): Promise<ValidSession> {
   return session;
 }
 
-export async function getTenantContext(): Promise<{
-  user: ValidSession["user"];
-  tenant: NonNullable<
-    Awaited<ReturnType<PrismaClient["tenant"]["findFirst"]>>
-  >;
-  role: string;
-}> {
-  const session = await requireSession();
-  const membership = await prisma.membership.findFirst({
-    where: { userId: session.user.id },
-    include: { tenant: true },
+export interface TenantContext {
+  user: SessionUser;
+  tenant: Tenant;
+  role: Membership["role"];
+}
+
+/**
+ * Kullanıcının işletme bağlamını bulur.
+ *
+ * ÖNEMLİ: `Membership` tablosu RLS korumalıdır (satırın tenantId'sini bilmeden
+ * okunamaz — bu tavuk-yumurta problemi bilinçli bir tasarım tercihidir).
+ * Bu yüzden hangi işletmeye ait olduğumuzu `Session` üzerinden taşırız:
+ * oturum açılışında aktif işletme bir kez belirlenir ve Session.activeTenantId
+ * alanına yazılır. Burada RLS'siz tablolar (Session, User, Tenant) okunur.
+ */
+export async function getTenantContext(): Promise<TenantContext> {
+  const session = await getSession();
+  if (!session) {
+    throw new Error("Giriş yapmalısınız.");
+  }
+  return resolveTenantContext(session);
+}
+
+/**
+ * Oturum açmış kullanıcının işletme bağlamını (RLS bağlamı kurarak) çözer.
+ * `getTenantContext` (fırlatır) ve `requireTenantContext` (yönlendirir)
+ * aynı mantığı paylaşsın diye ayrıldı.
+ */
+async function resolveTenantContext(session: ValidSession): Promise<TenantContext> {
+  // Aktif işletme, OTURUM AÇAN çerezdeki oturumdan okunur (kullanıcının en son
+  // oturumu değil) — aksi halde ikinci bir tarayıcı aktif işletmeyi karıştırabilir.
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value ?? "";
+
+  const record = await prisma.session.findFirst({
+    where: { token, userId: session.user.id },
+    select: { activeTenantId: true },
   });
 
-  if (!membership || !membership.tenant) {
+  const tenantId = record?.activeTenantId ?? (await resolveTenantId(session.user.id, token));
+  if (!tenantId) {
     throw new Error("İşletme bulunamadı.");
   }
 
-  return {
-    user: session.user,
-    tenant: membership.tenant,
-    role: String(membership.role),
-  };
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+  if (!tenant) {
+    throw new Error("İşletme bulunamadı.");
+  }
+
+  // Rol bilgisi tenant bağlamı kurularak okunur.
+  const role = await withTenant(tenant.id, async (tx) => {
+    const membership = await tx.membership.findFirst({
+      where: { userId: session.user.id, tenantId: tenant.id },
+      select: { role: true },
+    });
+    return membership?.role ?? "STAFF";
+  });
+
+  return { user: session.user, tenant, role };
+}
+
+/**
+ * Oturumda aktif işletme yoksa (örn. eski oturumlar) ilk üyeliği bulup
+ * oturuma yazar. Üyelik okuması için platform bağlamı gerekir.
+ */
+async function resolveTenantId(
+  userId: string,
+  token = ""
+): Promise<string | null> {
+  const membership = await withPlatform(async (tx) =>
+    tx.membership.findFirst({
+      where: { userId },
+      orderBy: { id: "asc" },
+      select: { tenantId: true },
+    })
+  );
+
+  if (!membership) return null;
+
+  await prisma.session.updateMany({
+    where: { userId, activeTenantId: null, ...(token ? { token } : {}) },
+    data: { activeTenantId: membership.tenantId },
+  });
+
+  return membership.tenantId;
+}
+
+/**
+ * Sayfalar ve server action'lar için güvenli sürüm:
+ * oturum yoksa /login'e, işletme yoksa /hesap-yok'a yönlendirir.
+ */
+export async function requireTenantContext(): Promise<TenantContext> {
+  const session = await getSession();
+  if (!session) {
+    redirect("/login");
+  }
+  try {
+    return await resolveTenantContext(session);
+  } catch {
+    redirect("/hesap-yok");
+  }
+}
+
+
+/** Sadece platform yöneticisi. Değilse panele gönderir. */
+export async function requirePlatformAdmin(): Promise<ValidSession> {
+  const session = await getSession();
+  if (!session) {
+    redirect("/login");
+  }
+  if (!session.user.isPlatformAdmin) {
+    redirect("/panel");
+  }
+  return session;
 }

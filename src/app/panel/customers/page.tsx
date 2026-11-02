@@ -1,10 +1,13 @@
 import { getTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
 import { createCustomerAction, deleteCustomerAction } from "@/actions/parties";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const dynamic = "force-dynamic";
 
 export default async function CustomersPage() {
   const { tenant } = await getTenantContext();
@@ -50,7 +53,7 @@ export default async function CustomersPage() {
               <Label htmlFor="address">Adres</Label>
               <Input id="address" name="address" />
             </div>
-            <Button type="submit">Ekle</Button>
+            <SubmitButton>Ekle</SubmitButton>
           </form>
         </CardContent>
       </Card>
@@ -74,13 +77,15 @@ export default async function CustomersPage() {
                     <span className="text-xs font-medium text-muted-foreground">
                       {c._count.orders} sipariş
                     </span>
-                    <form action={deleteCustomerAction} className="inline" onSubmit={(e) => {
-                      if (!confirm("Bu müşteriyi silmek istediğinize emin misiniz?")) e.preventDefault();
-                    }}>
+                    <form action={deleteCustomerAction}>
                       <input type="hidden" name="id" value={c.id} />
-                      <Button type="submit" variant="destructive" size="sm">
+                      <ConfirmSubmitButton
+                      variant="destructive"
+                      size="sm"
+                      message="Bu müşteriyi silmek istediğinize emin misiniz? Geçmiş siparişler korunur."
+                    >
                         Sil
-                      </Button>
+                      </ConfirmSubmitButton>
                     </form>
                   </div>
                 </div>

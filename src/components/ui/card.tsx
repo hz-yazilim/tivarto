@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 import { classNames } from "./utils";
 
@@ -9,7 +7,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, ...props 
   <div
     ref={ref}
     className={classNames(
-      "rounded-xl border border-card bg-card text-card-foreground shadow",
+      "rounded-xl border border-border bg-card text-card-foreground shadow-sm",
       className
     )}
     {...props}
@@ -31,7 +29,7 @@ interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
 const CardTitle = React.forwardRef<HTMLHeadingElement, CardTitleProps>(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={classNames("text-2xl font-bold semibold tracking-tight", className)}
+    className={classNames("text-lg font-semibold tracking-tight", className)}
     {...props}
   />
 ));

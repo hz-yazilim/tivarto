@@ -1,10 +1,13 @@
 import { getTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
 import { createSupplierAction, deleteSupplierAction } from "@/actions/parties";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const dynamic = "force-dynamic";
 
 export default async function SuppliersPage() {
   const { tenant } = await getTenantContext();
@@ -49,7 +52,7 @@ export default async function SuppliersPage() {
               <Label htmlFor="email">E-posta</Label>
               <Input id="email" name="email" type="email" />
             </div>
-            <Button type="submit">Ekle</Button>
+            <SubmitButton>Ekle</SubmitButton>
           </form>
         </CardContent>
       </Card>
@@ -69,13 +72,15 @@ export default async function SuppliersPage() {
                       {s.contactPerson || "-"} · {s.phone || "-"} · {s.email || "-"}
                     </div>
                   </div>
-                  <form action={deleteSupplierAction} className="inline" onSubmit={(e) => {
-                    if (!confirm("Bu tedarikçiyi silmek istediğinize emin misiniz?")) e.preventDefault();
-                  }}>
+                  <form action={deleteSupplierAction}>
                     <input type="hidden" name="id" value={s.id} />
-                    <Button type="submit" variant="destructive" size="sm">
+                    <ConfirmSubmitButton
+                      variant="destructive"
+                      size="sm"
+                      message="Bu tedarikçiyi silmek istediğinize emin misiniz? Mal kabul kayıtları korunur."
+                    >
                       Sil
-                    </Button>
+                    </ConfirmSubmitButton>
                   </form>
                 </div>
               ))

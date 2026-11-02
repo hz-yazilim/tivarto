@@ -3,8 +3,10 @@
 import { useActionState, useState } from "react";
 import { createGoodsReceiptAction } from "@/actions/receipts";
 import { Button } from "./ui/button";
+import { SubmitButton } from "./ui/submit-button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import type { FormState } from "@/lib/validation";
 
 interface ReceiptItem {
   productId: string;
@@ -12,12 +14,6 @@ interface ReceiptItem {
   receivedQuantity: number;
   missingQuantity: number;
   damagedQuantity: number;
-  note: string;
-}
-
-interface ReceiptFormProps {
-  products: Array<{ id: string; name: string }>;
-  suppliers: Array<{ id: string; name: string }>;
 }
 
 const EMPTY_ITEM: ReceiptItem = {
@@ -26,30 +22,43 @@ const EMPTY_ITEM: ReceiptItem = {
   receivedQuantity: 0,
   missingQuantity: 0,
   damagedQuantity: 0,
-  note: "",
 };
+
+const selectClass =
+  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export default function ReceiptForm({
   products,
   suppliers,
-}: ReceiptFormProps) {
-  const [state, formAction, isPending] = useActionState(createGoodsReceiptAction, null);
-  const [items, setItems] = useState<ReceiptItem[]>([EMPTY_ITEM]);
-  const [supplierId, setSupplierId] = useState("");
-  const [status, setStatus] = useState("PENDING");
-  const [note, setNote] = useState("");
+}: {
+  products: Array<{ id: string; name: string }>;
+  suppliers: Array<{ id: string; name: string }>;
+}) {
+  const [state, formAction] = useActionState<FormState, FormData>(
+    createGoodsReceiptAction,
+    null
+  );
+  const [items, setItems] = useState<ReceiptItem[]>([{ ...EMPTY_ITEM }]);
 
   function addItem() {
-    setItems([...items, { ...EMPTY_ITEM }]);
-  }
-  function removeItem(i: number) {
-    setItems(items.filter((_, idx) => idx !== i));
-  }
-  function setItemField(i: number, field: keyof ReceiptItem, value: string | number) {
-    setItems(items.map((it, idx) => (idx === i ? { ...it, [field]: value } : it)));
+    setItems((prev) => [...prev, { ...EMPTY_ITEM }]);
   }
 
-  const itemsJSON = JSON.stringify(items);
+  function removeItem(index: number) {
+    setItems((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function setItemField<K extends keyof ReceiptItem>(
+    index: number,
+    field: K,
+    value: ReceiptItem[K]
+  ) {
+    setItems((prev) =>
+      prev.map((it, i) => (i === index ? { ...it, [field]: value } : it))
+    );
+  }
+
+  const validItems = items.filter((it) => it.productId);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -58,19 +67,16 @@ export default function ReceiptForm({
           {state.error}
         </div>
       )}
+
       <div className="grid gap-3 md:grid-cols-3">
         <div className="space-y-1">
           <Label htmlFor="supplierId">Tedarikçi</Label>
-          <select
-            id="supplierId"
-            name="supplierId"
-            value={supplierId}
-            onChange={(e) => setSupplierId(e.target.value)}
-            className="w-full border rounded px-2 py-2"
-          >
+          <select id="supplierId" name="supplierId" className={selectClass}>
             <option value="">Seçiniz</option>
             {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
             ))}
           </select>
         </div>
@@ -79,116 +85,116 @@ export default function ReceiptForm({
           <select
             id="status"
             name="status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="w-full border rounded px-2 py-2"
+            defaultValue="RECEIVED"
+            className={selectClass}
           >
-            <option value="PENDING">Beklemede</option>
-            <option value="RECEIVED">Tam Alındı</option>
-            <option value="PARTIAL">Kısmi Alındı</option>
-            <option value="CANCELLED">İptal</option>
+            <option value="PENDING">Beklemede (stoğa eklenmez)</option>
+            <option value="RECEIVED">Tam Alındı (stoğa eklenir)</option>
+            <option value="PARTIAL">Kısmi Alındı (stoğa eklenir)</option>
+            <option value="CANCELLED">İptal (stoğa eklenmez)</option>
           </select>
         </div>
         <div className="space-y-1">
           <Label htmlFor="note">Açıklama</Label>
-          <Input
-            id="note"
-            name="note"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
+          <Input id="note" name="note" placeholder="İrsaliye no vb." />
         </div>
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h4 className="font-medium">Ürünler</h4>
-          <Button type="button" size="sm" onClick={addItem}>
+          <h3 className="font-medium">Ürünler</h3>
+          <Button type="button" size="sm" variant="outline" onClick={addItem}>
             + Ürün Ekle
           </Button>
         </div>
+
         {items.map((it, i) => (
-          <div key={i} className="grid gap-2 md:grid-cols-6 border p-3 rounded bg-secondary/50">
-            <div>
-              <Label className="text-xs block">Ürün</Label>
+          <div
+            key={i}
+            className="grid gap-2 rounded-lg border border-input bg-secondary/40 p-3 md:grid-cols-6"
+          >
+            <div className="md:col-span-2">
+              <Label className="mb-1 block text-xs">Ürün</Label>
               <select
-                name={`items[${i}].productId`}
                 value={it.productId}
                 onChange={(e) => setItemField(i, "productId", e.target.value)}
-                className="w-full border rounded px-2 py-1 text-xs"
+                className="h-9 w-full rounded-md border border-input bg-background px-2 text-xs"
               >
                 <option value="">Seçiniz</option>
                 {products.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <Label className="text-xs block">Beklenen</Label>
+              <Label className="mb-1 block text-xs">Beklenen</Label>
               <Input
-                name={`items[${i}].expectedQuantity`}
                 type="number"
                 min="0"
                 value={it.expectedQuantity}
-                onChange={(e) => setItemField(i, "expectedQuantity", Number(e.target.value) || 0)}
-                className="text-xs h-8"
+                onChange={(e) =>
+                  setItemField(i, "expectedQuantity", Number(e.target.value) || 0)
+                }
+                className="h-9 text-xs"
               />
             </div>
             <div>
-              <Label className="text-xs block">Teslim Alınan</Label>
+              <Label className="mb-1 block text-xs">Teslim Alınan</Label>
               <Input
-                name={`items[${i}].receivedQuantity`}
                 type="number"
                 min="0"
                 value={it.receivedQuantity}
-                onChange={(e) => setItemField(i, "receivedQuantity", Number(e.target.value) || 0)}
-                className="text-xs h-8"
+                onChange={(e) =>
+                  setItemField(i, "receivedQuantity", Number(e.target.value) || 0)
+                }
+                className="h-9 text-xs"
               />
             </div>
             <div>
-              <Label className="text-xs block">Eksik</Label>
+              <Label className="mb-1 block text-xs">Eksik</Label>
               <Input
-                name={`items[${i}].missingQuantity`}
                 type="number"
                 min="0"
                 value={it.missingQuantity}
-                onChange={(e) => setItemField(i, "missingQuantity", Number(e.target.value) || 0)}
-                className="text-xs h-8"
+                onChange={(e) =>
+                  setItemField(i, "missingQuantity", Number(e.target.value) || 0)
+                }
+                className="h-9 text-xs"
               />
             </div>
-            <div>
-              <Label className="text-xs block">Hasarlı</Label>
-              <Input
-                name={`items[${i}].damagedQuantity`}
-                type="number"
-                min="0"
-                value={it.damagedQuantity}
-                onChange={(e) => setItemField(i, "damagedQuantity", Number(e.target.value) || 0)}
-                className="text-xs h-8"
-              />
-            </div>
-            <div className="flex items-end">
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <Label className="mb-1 block text-xs">Hasarlı</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={it.damagedQuantity}
+                  onChange={(e) =>
+                    setItemField(i, "damagedQuantity", Number(e.target.value) || 0)
+                  }
+                  className="h-9 text-xs"
+                />
+              </div>
               <Button
                 type="button"
                 variant="destructive"
                 size="sm"
                 onClick={() => removeItem(i)}
+                disabled={items.length === 1}
+                aria-label="Satırı kaldır"
               >
-                Kaldır
+                ×
               </Button>
             </div>
           </div>
         ))}
       </div>
 
-      <input type="hidden" name="supplierId" value={supplierId} />
-      <input type="hidden" name="status" value={status} />
-      <input type="hidden" name="note" value={note} />
-      <input type="hidden" name="items" value={itemsJSON} />
+      <input type="hidden" name="items" value={JSON.stringify(validItems)} />
 
-      <Button type="submit" disabled={isPending || items.length === 0}>
-        Kaydı Oluştur
-      </Button>
+      <SubmitButton disabled={validItems.length === 0}>Kaydı Oluştur</SubmitButton>
     </form>
   );
 }

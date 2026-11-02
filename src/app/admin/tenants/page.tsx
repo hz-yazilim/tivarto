@@ -1,15 +1,25 @@
-import { listTenants, updateTenantStatus, updateTenantPlan } from "@/actions/admin";
-import { listPlans } from "@/actions/admin";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  listTenantUsage,
+  listPlans,
+  listTenants,
+  updateTenantPlan,
+  updateTenantStatus,
+} from "@/actions/admin";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 const STATUS_LABEL: Record<string, string> = {
   ACTIVE: "Aktif",
   SUSPENDED: "Askıya Alınmış",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function TenantsPage() {
-  const [tenants, plans] = await Promise.all([listTenants(), listPlans()]);
+  const [tenants, plans, usage] = await Promise.all([
+    listTenants(),
+    listPlans(),
+    listTenantUsage(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -18,32 +28,33 @@ export default async function TenantsPage() {
       </div>
 
       <div className="rounded-xl border bg-card p-6">
-        <table className="w-full text-sm divide-y divide-border">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[820px] text-sm divide-y divide-border">
           <thead>
             <tr className="text-left text-muted-foreground">
               <th className="p-4">İşletme</th>
-              <th className="p-4">Plan</th>
-              <th className="p-4">Durum</th>
+              <th className="p-4">Plan Ata</th>
+              <th className="p-4">Durum Değiştir</th>
               <th className="p-4">Ürün</th>
               <th className="p-4">Sipariş</th>
-              <th className="p-4 text-right">İşlemler</th>
+              <th className="p-4 text-right">Durum</th>
             </tr>
           </thead>
           <tbody>
             {tenants.length > 0 ? (
               tenants.map((t: any) => (
-                <tr key={t.id} className="p-4">
-                  <td>
+                <tr key={t.id} className="border-b border-border">
+                  <td className="p-4 align-top">
                     <div className="font-medium">{t.name}</div>
                     <div className="text-xs text-muted-foreground">{t.slug}</div>
                   </td>
-                  <td>
+                  <td className="p-4 align-top">
                     <form action={updateTenantPlan} className="inline">
                       <input type="hidden" name="id" value={t.id} />
                       <select
                         name="planId"
                         defaultValue={t.planId}
-                        className="border rounded px-2 py-1 text-xs bg-background"
+                        className="rounded border border-input bg-background px-2 py-1 text-xs"
                       >
                         {plans.map((p: any) => (
                           <option key={p.id} value={p.id}>
@@ -51,30 +62,30 @@ export default async function TenantsPage() {
                           </option>
                         ))}
                       </select>
-                      <Button type="submit" size="sm" className="ml-2">
+                      <SubmitButton size="sm" className="ml-2">
                         Ata
-                      </Button>
+                      </SubmitButton>
                     </form>
                   </td>
-                  <td>
+                  <td className="p-4 align-top">
                     <form action={updateTenantStatus} className="inline">
                       <input type="hidden" name="id" value={t.id} />
                       <select
                         name="status"
                         defaultValue={t.status}
-                        className="border rounded px-2 py-1 text-xs bg-background"
+                        className="rounded border border-input bg-background px-2 py-1 text-xs"
                       >
                         <option value="ACTIVE">Aktif</option>
                         <option value="SUSPENDED">Askıya Al</option>
                       </select>
-                      <Button type="submit" size="sm" className="ml-2">
+                      <SubmitButton size="sm" className="ml-2">
                         Kaydet
-                      </Button>
+                      </SubmitButton>
                     </form>
                   </td>
-                  <td className="text-muted-foreground">{t._count.products}</td>
-                  <td className="text-muted-foreground">{t._count.orders}</td>
-                  <td className="text-right">
+                  <td className="p-4 text-muted-foreground">{usage.products.get(t.id) ?? 0}</td>
+                  <td className="p-4 text-muted-foreground">{usage.orders.get(t.id) ?? 0}</td>
+                  <td className="p-4 text-right">
                     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
                       t.status === "ACTIVE"
                         ? "bg-green-100 text-green-800 border-green-200"
@@ -82,6 +93,16 @@ export default async function TenantsPage() {
                     }`}>
                       {STATUS_LABEL[t.status]}
                     </span>
+                    <div className="mt-2">
+                      <a
+                        href={`/shop/${t.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Vitrini aç →
+                      </a>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -90,6 +111,7 @@ export default async function TenantsPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

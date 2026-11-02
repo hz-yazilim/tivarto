@@ -1,8 +1,11 @@
 import { listPlans, createPlanAction, deletePlanAction } from "@/actions/admin";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const dynamic = "force-dynamic";
 
 export default async function PlansPage() {
   const plans = await listPlans();
@@ -35,7 +38,7 @@ export default async function PlansPage() {
               <Label htmlFor="maxStorageMb">Maks. Depolama (MB)</Label>
               <Input id="maxStorageMb" name="maxStorageMb" type="number" defaultValue="5000" />
             </div>
-            <Button type="submit">Oluştur</Button>
+            <SubmitButton>Oluştur</SubmitButton>
           </form>
         </CardContent>
       </Card>
@@ -52,17 +55,19 @@ export default async function PlansPage() {
                   <div>
                     <div className="font-medium">{p.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {p.priceMonthly.toLocaleString("tr-TR")} TL / ay ·
+                      {Number(p.priceMonthly).toLocaleString("tr-TR")} TL / ay ·
                       {p.maxProducts} ürün · {p.maxStorageMb} MB
                     </div>
                   </div>
-                  <form action={deletePlanAction} className="inline" onSubmit={(e) => {
-                    if (!confirm("Bu planı silmek istediğinize emin misiniz?")) e.preventDefault();
-                  }}>
+                  <form action={deletePlanAction}>
                     <input type="hidden" name="id" value={p.id} />
-                    <Button type="submit" variant="destructive" size="sm">
+                    <ConfirmSubmitButton
+                      variant="destructive"
+                      size="sm"
+                      message="Bu planı silmek istediğinize emin misiniz? Planı kullanan işletmeler varsa silme işlemi reddedilir."
+                    >
                       Sil
-                    </Button>
+                    </ConfirmSubmitButton>
                   </form>
                 </div>
               ))

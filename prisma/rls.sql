@@ -2,9 +2,12 @@
 -- İlk migration'dan SONRA bir kez çalıştırın (yönetici/superuser kullanıcıyla).
 -- Uygulama kullanıcısı (tivarto_app) superuser OLMAMALI, yoksa RLS atlanır.
 --
--- Politikalar: bir işletme (tenant) konteksti ayarlıysa sadece o işletmenin satırları
--- görülebilir; kontekst ayarlı değilse (platform admini gibi) tüm satırlar görünür.
--- Uygulama katamarı her tenant-scoped istekte 'app.tenant_id' ayarını mutlaka set etmelidir.
+-- Politikalar (fail-closed):
+--   * app.tenant_id ayarlı  -> sadece o işletmenin satırları görünür/yazılır.
+--   * app.platform = 'on'   -> platform yöneticisi tüm satırları görür (merkez panel).
+--   * Hiçbiri ayarlı değil  -> HİÇBİR satır görünmez (güvenli varsayılan).
+-- Uygulama tarafı: tenant işlemleri withTenant(), platform işlemleri withPlatform()
+-- fonksiyonlarından geçmelidir (bkz. src/lib/db.ts).
 
 DO $$
 DECLARE
@@ -21,9 +24,10 @@ BEGIN
     EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', t);
     EXECUTE format(
       'CREATE POLICY tenant_isolation ON %I
-         USING (current_setting(''app.tenant_id'', true) IS NULL
+         USING (current_setting(''app.platform'', true) = ''on''
                 OR "tenantId" = current_setting(''app.tenant_id'', true))
-         WITH CHECK ("tenantId" = current_setting(''app.tenant_id'', true))',
+         WITH CHECK (current_setting(''app.platform'', true) = ''on''
+                     OR "tenantId" = current_setting(''app.tenant_id'', true))',
       t
     );
   END LOOP;

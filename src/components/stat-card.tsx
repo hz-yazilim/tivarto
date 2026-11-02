@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardTitle } from "./ui/card";
+import { Card, CardTitle } from "./ui/card";
 
 interface StatCardProps {
   title: string;

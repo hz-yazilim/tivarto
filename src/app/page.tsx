@@ -1,58 +1,94 @@
-export default function Home() {
-  return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight">Tivarto</h1>
-        <p className="mt-4 text-lg text-muted-foreground">
-          İşletmeni yönet, dijital mağazanı otomatik aç.
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Ürün, stok, müşteri, tedarikçi ve sipariş yönetimiyle birlikte ücretsiz bir
-          internet mağazası sunan abonelik tabanlı SaaS platformu.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <a
-            key={i}
-            href="/login"
-            className="group rounded-xl border border-input bg-card p-6 text-card-foreground hover:bg-accent transition-colors"
-          >
-            <div className="mb-3 rounded-lg bg-secondary p-3 group-hover:bg-accent/80 transition-colors">
-              {i === 1 && "📦"}
-              {i === 2 && "📊"}
-              {i === 3 && "🛒"}
-              {i === 4 && "📦🚚"}
-              {i === 5 && "👥"}
-              {i === 6 && "🧾"}
-            </div>
-            <h3 className="mb-2 font-semibold">{FEATURES[i - 1].title}</h3>
-            <p className="text-sm text-muted-foreground">{FEATURES[i - 1].desc}</p>
-          </a>
-        ))}
-      </div>
-
-      <div className="mt-16 flex items-center justify-center gap-4">
-        <a
-          href="/register"
-          className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow hover:bg-primary/90 transition-colors"
-        >
-          Ücretsiz Başlat
-        </a>
-        <a href="/login" className="text-sm text-muted-foreground hover:underline">
-          Zaten hesabınız var mı? Giriş yapın
-        </a>
-      </div>
-    </div>
-  );
-}
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 const FEATURES = [
-  { title: "Ürün Yönetimi", desc: "Ürün ekleyin, kategorilere ayırın, fiyat ve stok güncelleyin." },
-  { title: "Stok Takibi", desc: "Giriş-çıkış kayıtları, kritik stok uyarıları ve stok geçmişi." },
-  { title: "Dijital Mağaza", desc: "Kendi internet sitenizde ürünlerinizi yayınlayın." },
-  { title: "Mal Kabulü", desc: "Tedarikçiden gelen ürünleri kaydedin, eksik/hasarlı kayıtlayın." },
-  { title: "Müşteri & Tedarikçi", desc: "Müşteri ve tedarikçi kartları, sipariş geçmişi." },
-  { title: "Sipariş Yönetimi", desc: "Web sitenizden gelen siparişleri yönetin, stok güncelleyin." },
+  {
+    title: "Ürün Yönetimi",
+    desc: "Ürün ekleyin, kategorilere ayırın, fiyat ve görselleri güncelleyin.",
+    icon: "📦",
+  },
+  {
+    title: "Stok Takibi",
+    desc: "Giriş-çıkış hareketleri, stok sayımı ve kritik stok uyarıları.",
+    icon: "📊",
+  },
+  {
+    title: "Dijital Vitrin",
+    desc: "Ürünleriniz otomatik olarak herkese açık mağaza sayfanızda yayınlanır.",
+    icon: "🛒",
+  },
+  {
+    title: "Mal Kabul",
+    desc: "Tedarikçiden gelen ürünleri eksik/hasarlı kaydıyla birlikte stoğa alın.",
+    icon: "🚚",
+  },
+  {
+    title: "Müşteri & Tedarikçi",
+    desc: "Müşteri ve tedarikçi kartları, sipariş geçmişi.",
+    icon: "👥",
+  },
+  {
+    title: "Sipariş Yönetimi",
+    desc: "Vitrinden gelen siparişleri durum takibiyle yönetin.",
+    icon: "🧾",
+  },
 ];
+
+export default function Home() {
+  return (
+    <main className="mx-auto max-w-5xl px-5 py-12 md:py-16">
+      <header className="mb-14 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-bold text-primary-foreground">
+          T
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight md:text-5xl">Tiverto</h1>
+        <p className="mt-3 text-lg text-muted-foreground">
+          İşletmeni yönet, ticaretini büyüt.
+        </p>
+        <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
+          Tiverto; küçük ve orta ölçekli işletmelerin ürünlerini, stoklarını,
+          müşterilerini, tedarikçilerini ve siparişlerini tek bir platform
+          üzerinden yönetebilmesi için geliştirilen bulut tabanlı işletme yönetim
+          platformudur.
+        </p>
+
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link href="/register">
+            <Button size="lg">Ücretsiz Başla</Button>
+          </Link>
+          <Link href="/login">
+            <Button size="lg" variant="outline">
+              Giriş Yap
+            </Button>
+          </Link>
+        </div>
+      </header>
+
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {FEATURES.map((f) => (
+          <div
+            key={f.title}
+            className="rounded-xl border border-border bg-card p-5 transition-colors hover:bg-accent/40"
+          >
+            <div className="mb-3 text-2xl">{f.icon}</div>
+            <h2 className="mb-1 font-semibold">{f.title}</h2>
+            <p className="text-sm text-muted-foreground">{f.desc}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="mt-14 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+        <h2 className="mb-2 font-semibold">Demo modu</h2>
+        <ul className="list-inside list-disc space-y-1">
+          <li>Bu sürüm geliştirme aşamasındadır, örnek verilerle çalışır.</li>
+          <li>Demo verileri gerçek işletme verisi değildir.</li>
+          <li>Gerçek müşteri bilgisi girilmemeli, gerçek ödeme alınmamalıdır.</li>
+        </ul>
+      </section>
+
+      <footer className="mt-12 text-center text-xs text-muted-foreground">
+        Tiverto — İşletmeni yönet, ticaretini büyüt.
+      </footer>
+    </main>
+  );
+}

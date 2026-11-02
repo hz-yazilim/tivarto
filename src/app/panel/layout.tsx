@@ -1,34 +1,56 @@
-import { getTenantContext } from "@/lib/session.server";
-import { redirect } from "next/navigation";
+import { requireTenantContext } from "@/lib/session.server";
 import PanelSidebar from "@/components/panel-sidebar";
+import DemoBanner from "@/components/demo-banner";
+import TenantStatusGuard from "@/components/tenant-status-guard";
+
+export const dynamic = "force-dynamic";
 
 export default async function PanelLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  let tenant: { name: string; slug: string };
-  try {
-    const ctx = await getTenantContext();
-    tenant = ctx.tenant;
-  } catch {
-    redirect("/login");
-  }
+  const { tenant, user, role } = await requireTenantContext();
 
   return (
-    <div className="flex h-screen bg-background">
-      <PanelSidebar tenant={tenant} />
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <header className="flex items-center justify-between px-6 py-4 border-b border-border bg-background sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold">{tenant.name}</h1>
-            <span className="h-2 w-2 rounded-full bg-green-500"></span>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            Yönetim Paneli
-          </div>
-        </header>
-        <main className="flex-1 overflow-y-auto bg-secondary p-6">{children}</main>
+    <div className="min-h-screen bg-secondary">
+      {tenant.status === "SUSPENDED" && <TenantStatusGuard role={role} />}
+      <div className="flex h-screen">
+        <PanelSidebar
+          tenant={{ name: tenant.name, slug: tenant.slug }}
+          user={{ name: user.name ?? user.email, isPlatformAdmin: user.isPlatformAdmin }}
+        />
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <header className="z-10 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-3 md:px-6">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground md:hidden">
+                T
+              </span>
+              <h1 className="truncate text-base font-semibold md:text-lg">
+                {tenant.name}
+              </h1>
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${
+                  tenant.status === "ACTIVE" ? "bg-green-500" : "bg-red-500"
+                }`}
+                title={tenant.status === "ACTIVE" ? "Aktif" : "Askıda"}
+              />
+            </div>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="hidden sm:inline">Yönetim Paneli</span>
+              <a
+                href={`/shop/${tenant.slug}`}
+                className="rounded-md border border-input px-2 py-1 font-medium text-foreground hover:bg-accent"
+              >
+                Vitrin
+              </a>
+            </div>
+          </header>
+          <main className="flex-1 overflow-y-auto p-4 md:p-6">
+            <DemoBanner />
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   );

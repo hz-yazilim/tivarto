@@ -1,11 +1,13 @@
-import { listPayments, createPaymentAction } from "@/actions/admin";
-import { Button } from "@/components/ui/button";
+import { listPayments, createPaymentAction, listTenants } from "@/actions/admin";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+export const dynamic = "force-dynamic";
+
 export default async function PaymentsPage() {
-  const payments = await listPayments();
+  const [payments, tenants] = await Promise.all([listPayments(), listTenants()]);
 
   return (
     <div className="space-y-6">
@@ -15,13 +17,25 @@ export default async function PaymentsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Yeni Ödeme Kaydı Ekle</CardTitle>
+          <CardTitle className="text-base">Yeni Ödeme Kaydı Ekle</CardTitle>
         </CardHeader>
         <CardContent className="p-5 pt-0">
-          <form action={createPaymentAction} className="grid gap-3 md:grid-cols-4 items-end">
-            <div className="space-y-1">
-              <Label htmlFor="tenantId">İşletme ID</Label>
-              <Input id="tenantId" name="tenantId" placeholder="cuid..." required />
+          <form action={createPaymentAction} className="grid items-end gap-3 md:grid-cols-4">
+            <div className="space-y-1 md:col-span-2">
+              <Label htmlFor="tenantId">İşletme</Label>
+              <select
+                id="tenantId"
+                name="tenantId"
+                required
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Seçiniz</option>
+                {tenants.map((t: any) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.slug})
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1">
               <Label htmlFor="amount">Tutar (TL)</Label>
@@ -31,14 +45,14 @@ export default async function PaymentsPage() {
               <Label htmlFor="description">Açıklama</Label>
               <Input id="description" name="description" placeholder="Abonelik ödemesi" />
             </div>
-            <Button type="submit">Kaydet</Button>
+            <SubmitButton>Kaydet</SubmitButton>
           </form>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Ödeme Geçmişi</CardTitle>
+          <CardTitle className="text-base">Ödeme Geçmişi</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="divide-y divide-border">
@@ -54,7 +68,7 @@ export default async function PaymentsPage() {
                   </div>
                   <div className="text-right">
                     <div className={`font-medium ${p.status === "PAID" ? "text-green-700" : "text-muted-foreground"}`}>
-                      {p.amount.toLocaleString("tr-TR")} TL
+                      {Number(p.amount).toLocaleString("tr-TR")} TL
                     </div>
                     <div className="text-xs text-muted-foreground">{p.status}</div>
                   </div>

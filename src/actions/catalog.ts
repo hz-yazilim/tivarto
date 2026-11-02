@@ -1,147 +1,216 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getTenantContext } from "@/lib/session.server";
+import { requireTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
-import { prisma } from "@/lib/auth";
+import { optionalStr, str, toInt, toNumber, type FormState } from "@/lib/validation";
 
-function toDecimal(s: string | undefined): number | undefined {
-  if (!s) return undefined;
-  const v = parseFloat(s.replace(",", "."));
-  return Number.isNaN(v) ? undefined : v;
+// ---------- Ürünler ----------
+
+/**
+ * Checkbox semantiği: işaretliyse "on"/"true", değilse alan hiç gönderilmez.
+ * Düzenleme formu ayrıca gizli `isActive` alanı gönderebilir; bu yüzden
+ * "alan yok" durumu "pasif" kabul edilir (açıkça belirtilmediyse yayınlanmaz).
+ */
+function readIsActive(formData: FormData): boolean {
+  const value = str(formData, "isActive").toLowerCase();
+  return value === "on" || value === "true" || value === "1";
 }
 
-function toInt(s: string | undefined): number | undefined {
-  if (!s) return undefined;
-  const v = parseInt(s, 10);
-  return Number.isNaN(v) ? undefined : v;
-}
+export async function createProductAction(
+  _prevState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const { tenant, user } = await requireTenantContext();
 
-// ---------- Products (useActionState) ----------
+  const name = str(formData, "name");
+  const sellPrice = toNumber(str(formData, "sellPrice"));
+  if (!name) return { error: "Ürün adı zorunludur." };
+  if (sellPrice === undefined) return { error: "Geçerli bir satış fiyatı girin." };
 
-export async function createProductAction(prevState: any, formData: FormData) {
-  const { tenant } = await getTenantContext();
-
-  const name = (formData.get("name") as string)?.trim();
-  const sellPriceRaw = (formData.get("sellPrice") as string)?.trim();
-  if (!name || !sellPriceRaw) {
-    return { error: "Ürün adı ve satış fiyatı zorunludur." };
-  }
-  const sellPrice = toDecimal(sellPriceRaw);
-  if (sellPrice === undefined) {
-    return { error: "Geçersiz satış fiyatı." };
-  }
+  const stock = Math.max(0, toInt(str(formData, "stock"), 0));
 
   await withTenant(tenant.id, async (tx) => {
-    await tx.product.create({
+    const product = await tx.product.create({
       data: {
         tenantId: tenant.id,
-        categoryId: (formData.get("categoryId") as string) || undefined,
+        categoryId: optionalStr(formData, "categoryId") ?? null,
         name,
-        description: (formData.get("description") as string) || undefined,
-        imageUrl: (formData.get("imageUrl") as string) || undefined,
-        barcode: (formData.get("barcode") as string) || undefined,
-        sku: (formData.get("sku") as string) || undefined,
-        buyPrice: toDecimal((formData.get("buyPrice") as string) ?? undefined),
+        description: optionalStr(formData, "description"),
+        imageUrl: optionalStr(formData, "imageUrl"),
+        barcode: optionalStr(formData, "barcode"),
+        sku: optionalStr(formData, "sku"),
+        buyPrice: toNumber(str(formData, "buyPrice")) ?? null,
         sellPrice,
-        stock: toInt((formData.get("stock") as string) ?? "0") ?? 0,
-        minStock: toInt((formData.get("minStock") as string) ?? "0") ?? 0,
-        isActive: formData.get("isActive") === "on",
+        stock,
+        minStock: Math.max(0, toInt(str(formData, "minStock"), 0)),
+        isActive: readIsActive(formData),
+      },
+    });
+
+    // Açılış stoğu varsa hareket kaydı da oluştur.
+    if (stock > 0) {
+      await tx.stockMovement.create({
+        data: {
+          tenantId: tenant.id,
+          productId: product.id,
+          type: "IN",
+          quantity: stock,
+          note: "Ürün oluşturulurken girilen açılış stoğu",
+          createdBy: user.id,
+        },
+      });
+    }
+
+    await tx.auditLog.create({
+      data: {
+        tenantId: tenant.id,
+        userId: user.id,
+        action: "product.create",
+        entity: "Product",
+        entityId: product.id,
       },
     });
   });
 
+  revalidatePath("/panel/products");
   redirect("/panel/products");
 }
 
-export async function updateProductAction(prevState: any, formData: FormData) {
-  const { tenant } = await getTenantContext();
-  const id = formData.get("id") as string;
+export async function updateProductAction(
+  _prevState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const { tenant, user } = await requireTenantContext();
+  const id = str(formData, "id");
   if (!id) return { error: "Ürün bulunamadı." };
 
-  const name = (formData.get("name") as string)?.trim();
-  const sellPriceRaw = (formData.get("sellPrice") as string)?.trim();
-  if (!name || !sellPriceRaw) {
-    return { error: "Ürün adı ve satış fiyatı zorunludur." };
-  }
-  const sellPrice = toDecimal(sellPriceRaw);
-  if (sellPrice === undefined) {
-    return { error: "Geçersiz satış fiyatı." };
-  }
+  const name = str(formData, "name");
+  const sellPrice = toNumber(str(formData, "sellPrice"));
+  if (!name) return { error: "Ürün adı zorunludur." };
+  if (sellPrice === undefined) return { error: "Geçerli bir satış fiyatı girin." };
 
-  await withTenant(tenant.id, async (tx) => {
+  const missing = await withTenant(tenant.id, async (tx) => {
     const product = await tx.product.findFirst({
       where: { id, tenantId: tenant.id },
+      select: { id: true },
     });
-    if (!product) return { error: "Ürün bulunamadı." };
+    if (!product) return true;
 
-    await tx.product.update({
-      where: { id },
+    await tx.product.updateMany({
+      where: { id, tenantId: tenant.id },
       data: {
-        categoryId: (formData.get("categoryId") as string) || undefined,
+        // Boş seçim ("") kategoriyi kaldırır; alan hiç gönderilmediyse korunur.
+        categoryId: formData.has("categoryId")
+          ? (optionalStr(formData, "categoryId") ?? null)
+          : undefined,
         name,
-        description: (formData.get("description") as string) || undefined,
-        imageUrl: (formData.get("imageUrl") as string) || undefined,
-        barcode: (formData.get("barcode") as string) || undefined,
-        sku: (formData.get("sku") as string) || undefined,
-        buyPrice: toDecimal((formData.get("buyPrice") as string) ?? undefined),
+        description: optionalStr(formData, "description") ?? null,
+        imageUrl: optionalStr(formData, "imageUrl") ?? null,
+        barcode: optionalStr(formData, "barcode") ?? null,
+        sku: optionalStr(formData, "sku") ?? null,
+        buyPrice: toNumber(str(formData, "buyPrice")) ?? null,
         sellPrice,
-        stock: toInt((formData.get("stock") as string) ?? "0") ?? 0,
-        minStock: toInt((formData.get("minStock") as string) ?? "0") ?? 0,
-        isActive: formData.get("isActive") === "on",
+        minStock: Math.max(0, toInt(str(formData, "minStock"), 0)),
+        isActive: readIsActive(formData),
       },
     });
+
+    await tx.auditLog.create({
+      data: {
+        tenantId: tenant.id,
+        userId: user.id,
+        action: "product.update",
+        entity: "Product",
+        entityId: id,
+      },
+    });
+    return false;
   });
 
+  if (missing) return { error: "Ürün bulunamadı." };
+
+  revalidatePath("/panel/products");
   redirect("/panel/products");
 }
 
-// ---------- Products (direct form) ----------
-
 export async function deleteProductAction(formData: FormData): Promise<void> {
-  const { tenant } = await getTenantContext();
-  const id = formData.get("id") as string;
+  const { tenant } = await requireTenantContext();
+  const id = str(formData, "id");
   if (!id) return;
+
   await withTenant(tenant.id, async (tx) => {
-    await tx.product.deleteMany({ where: { id, tenantId: tenant.id } });
+    // Sipariş/mal kabul kaydı olan ürünü silmek yerine pasifleştir.
+    const used = await tx.orderItem.count({ where: { productId: id } });
+    if (used > 0) {
+      await tx.product.updateMany({
+        where: { id, tenantId: tenant.id },
+        data: { isActive: false },
+      });
+    } else {
+      await tx.goodsReceiptItem.deleteMany({
+        where: { productId: id, tenantId: tenant.id },
+      });
+      await tx.stockMovement.deleteMany({
+        where: { productId: id, tenantId: tenant.id },
+      });
+      await tx.product.deleteMany({ where: { id, tenantId: tenant.id } });
+    }
   });
+
+  revalidatePath("/panel/products");
 }
 
 export async function toggleProductAction(formData: FormData): Promise<void> {
-  const { tenant } = await getTenantContext();
-  const id = formData.get("id") as string;
-  const active = formData.get("isActive") === "true";
+  const { tenant } = await requireTenantContext();
+  const id = str(formData, "id");
+  const active = str(formData, "isActive") === "true";
   if (!id) return;
+
   await withTenant(tenant.id, async (tx) => {
-    await tx.product.update({
+    await tx.product.updateMany({
       where: { id, tenantId: tenant.id },
       data: { isActive: active },
     });
   });
+
+  revalidatePath("/panel/products");
 }
 
-// ---------- Categories (direct form) ----------
+// ---------- Kategoriler ----------
 
 export async function createCategoryAction(formData: FormData): Promise<void> {
-  const { tenant } = await getTenantContext();
-  const name = (formData.get("name") as string)?.trim();
+  const { tenant } = await requireTenantContext();
+  const name = str(formData, "name");
   if (!name) return;
+
   await withTenant(tenant.id, async (tx) => {
     await tx.category.create({
       data: {
         tenantId: tenant.id,
         name,
-        sortOrder: toInt((formData.get("sortOrder") as string) ?? "0") ?? 0,
+        sortOrder: toInt(str(formData, "sortOrder"), 0),
       },
     });
   });
+
+  revalidatePath("/panel/categories");
 }
 
 export async function deleteCategoryAction(formData: FormData): Promise<void> {
-  const { tenant } = await getTenantContext();
-  const id = formData.get("id") as string;
+  const { tenant } = await requireTenantContext();
+  const id = str(formData, "id");
   if (!id) return;
+
   await withTenant(tenant.id, async (tx) => {
+    // Kategoriye bağlı ürünlerin kategorisini boşalt, sonra kategoriyi sil.
+    await tx.product.updateMany({
+      where: { categoryId: id, tenantId: tenant.id },
+      data: { categoryId: null },
+    });
     await tx.category.deleteMany({ where: { id, tenantId: tenant.id } });
   });
+
+  revalidatePath("/panel/categories");
 }
