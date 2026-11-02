@@ -3,7 +3,9 @@
  * Kullanıcı isteği: "Demo işlemlerinin gerçek veri kaydı yapmadığının açıkça belirtilmesi".
  * DEMO_MODE ortam değişkeni kapalıysa (gerçek kullanım) hiçbir şey gösterilmez.
  */
-export const DEMO_MODE = process.env.DEMO_MODE !== "false";
+import { DEMO_MODE } from "@/lib/constants";
+
+export { DEMO_MODE };
 
 export default function DemoBanner() {
   if (!DEMO_MODE) return null;
@@ -14,7 +16,8 @@ export default function DemoBanner() {
         Demo
       </span>
       <span>
-        Bu ortam tanıtım amaçlıdır. Ekranlardaki kayıtlar örnek veridir; gerçek
+        Bu ortam tanıtım amaçlıdır. Ekranlardaki kayıtlar örnek veridir; giriş
+        bilgileri doğrulanmaz ve kayıtlar veritabanına yazılmaz. Gerçek
         müşteri/işletme bilgisi ve gerçek ödeme kullanılmamalıdır.
       </span>
     </div>

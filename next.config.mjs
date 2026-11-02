@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Önizleme/uzak geliştirme ortamlarında (ör. *.e2b.app) server action
+  // isteklerinin Next tarafından reddedilmemesi için.
+  allowedDevOrigins: ["*.e2b.app"],
   // Sunucu tarafında bcrypt/prisma kullanıldığı için bu paketler bundle dışında kalır.
   serverExternalPackages: ["@prisma/client", "bcryptjs"],
   images: {

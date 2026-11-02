@@ -5,7 +5,12 @@ import { NextRequest, NextResponse } from "next/server";
  * Bu yüzden burada sadece çerez varlığına bakılır; oturumun geçerliliği
  * sayfa/layout katmanında (Node.js runtime) doğrulanır.
  */
-import { RESERVED_SLUGS, SESSION_COOKIE_NAME } from "./lib/constants";
+import {
+  DEMO_ROLE_COOKIE,
+  DEMO_SESSION_COOKIE,
+  RESERVED_SLUGS,
+  SESSION_COOKIE_NAME,
+} from "./lib/constants";
 
 const ROOT = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "";
 const rootHost = ROOT.split(":")[0].toString().toLowerCase();
@@ -14,6 +19,8 @@ const rootHost = ROOT.split(":")[0].toString().toLowerCase();
 const ADMIN_PREFIX = "/admin";
 // Kiracı yönetim panelinin bulunduğu yol öneki
 const PANEL_PREFIX = "/panel";
+// Normal müşterinin "Siparişlerim" paneli (demo modunda aktif)
+const CUSTOMER_PREFIX = "/musteri";
 
 // Platform (apex) alanının bilinen parçaları — subdomain olarak değerlendirilmez.
 const PLATFORM_SUFFIXES = ["onrender.com", "vercel.app", "localhost"];
@@ -49,6 +56,8 @@ export function middleware(req: NextRequest) {
     pathname === PANEL_PREFIX || pathname.startsWith(`${PANEL_PREFIX}/`);
   const isAdminRoute =
     pathname === ADMIN_PREFIX || pathname.startsWith(`${ADMIN_PREFIX}/`);
+  const isCustomerRoute =
+    pathname === CUSTOMER_PREFIX || pathname.startsWith(`${CUSTOMER_PREFIX}/`);
 
   // Çıkış rotası her zaman erişilebilir olmalı; aksi halde süresi dolmuş
   // oturumlar /login'e yönlendirilip çerez hiç temizlenmez (sonsuz döngü).
@@ -66,21 +75,40 @@ export function middleware(req: NextRequest) {
     } catch {
       originHost = "";
     }
-    if (originHost && originHost !== host) {
+    // Önizleme/proxy ortamlarında Host, kaynak sunucu adı olabilir; tarayıcının
+    // gördüğü adres x-forwarded-host ile gelir. İkisini de kabul et.
+    const forwardedHost = req.headers.get("x-forwarded-host");
+    const allowedHosts = new Set(
+      [host, forwardedHost].filter((value): value is string => Boolean(value))
+    );
+    if (originHost && !allowedHosts.has(originHost)) {
       return new NextResponse("Geçersiz istek kaynağı.", { status: 403 });
     }
   }
 
   // ---- Kimlik doğrulama kapısı (sadece çerez kontrolü, DB'ye gitmeden) ----
-  if ((isPanelRoute || isAdminRoute) && !sessionToken && !isLogoutRoute) {
+  if (
+    (isPanelRoute || isAdminRoute || isCustomerRoute) &&
+    !sessionToken &&
+    !isLogoutRoute
+  ) {
     url.pathname = "/login";
     url.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(url);
   }
 
-  // Zaten giriş yapmış görünen kullanıcıyı login/register'dan panele yönlendir.
+  // Zaten giriş yapmış görünen kullanıcıyı login/register'dan kendi paneline
+  // yönlendir. Demo oturumunda rol çerezi hangi panelin açılacağını belirtir;
+  // gerçek oturumda varsayılan /panel'dir.
   if (sessionToken && (pathname === "/login" || pathname === "/register")) {
-    url.pathname = "/panel";
+    const isDemo = req.cookies.get(DEMO_SESSION_COOKIE)?.value === "1";
+    const demoRole = isDemo ? req.cookies.get(DEMO_ROLE_COOKIE)?.value : null;
+    url.pathname =
+      demoRole === "admin"
+        ? "/admin"
+        : demoRole === "customer"
+          ? "/musteri"
+          : "/panel";
     return NextResponse.redirect(url);
   }
 

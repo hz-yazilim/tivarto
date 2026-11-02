@@ -30,6 +30,8 @@ services:
         sync: false
       - key: DEMO_MODE
         value: "true"
+      # Not: DATABASE_URL bu serviste tanımlı olduğu için demo giriş kolaylığı
+      # (her şifreyi kabul etme) otomatik kapalıdır; yalnızca "Demo" etiketi görünür.
 
 databases:
   - name: tiverto-db
