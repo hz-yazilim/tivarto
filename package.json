@@ -15,7 +15,7 @@
     "db:setup": "node scripts/migrate.mjs && node scripts/apply-rls.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:bootstrap-admin": "node scripts/seed.mjs"
+    "db:bootstrap-admin": "node scripts/bootstrap-admin.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^6.19.3",
