@@ -69,7 +69,7 @@ export async function createGoodsReceiptAction(
           supplierId,
           status,
           note,
-          receivedAt: status === "RECEIVED" ? new Date() : null,
+          receivedAt: status === "RECEIVED" || status === "PARTIAL" ? new Date() : null,
         },
       });
 
@@ -86,10 +86,11 @@ export async function createGoodsReceiptAction(
         const damagedQuantity = Math.max(0, toInt(String(it.damagedQuantity ?? 0), 0));
 
         // Sadece sağlam teslim alınan ürünler stoğa girer.
+        // Beklemede ve iptal durumundaki teslimatlar stoğa işlenmez.
         const stockable =
-          status === "CANCELLED"
-            ? 0
-            : Math.max(0, receivedQuantity - damagedQuantity);
+          status === "RECEIVED" || status === "PARTIAL"
+            ? Math.max(0, receivedQuantity - damagedQuantity)
+            : 0;
 
         await tx.goodsReceiptItem.create({
           data: {
