@@ -80,6 +80,9 @@ export async function loginAction(
   if (!user) {
     return { error: "E-posta veya şifre hatalı." };
   }
+  if (user.isSuspended) {
+    return { error: "Bu hesap geçici olarak askıya alınmıştır. Destek ekibiyle iletişime geçin." };
+  }
 
   const valid = await comparePassword(password, user.passwordHash);
   if (!valid) {
