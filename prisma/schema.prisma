@@ -314,6 +314,7 @@ model AuditLog {
   action    String
   entity    String
   entityId  String?
+  details   String?
   createdAt DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
