@@ -66,7 +66,7 @@ export async function listPlatformUsers(search = "") {
       },
       _count: { select: { sessions: true } },
     },
-  });
+  }));
 }
 
 export async function listTenants() {
@@ -80,7 +80,7 @@ export async function listTenants() {
         select: { user: { select: { id: true, name: true, email: true } } },
       },
     },
-  });
+  }));
 }
 
 export async function listTenantUsage() {
