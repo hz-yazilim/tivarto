@@ -28,19 +28,29 @@ await client.connect();
 
 try {
   await client.query("BEGIN");
-  const userId = crypto.randomUUID();
-  const result = await client.query(
-    `INSERT INTO "User" (id, email, "passwordHash", name, "isPlatformAdmin", "isSuspended", "mustChangePassword")
-     VALUES ($1, $2, $3, 'Platform Yöneticisi', true, false, true)
-     ON CONFLICT (email) DO UPDATE
-       SET "passwordHash" = EXCLUDED."passwordHash",
-           "isPlatformAdmin" = true,
-           "isSuspended" = false,
-           "mustChangePassword" = true
-     RETURNING id`,
-    [userId, email, passwordHash]
+  const existing = await client.query(
+    'SELECT id, "isPlatformAdmin" FROM "User" WHERE email = $1',
+    [email]
   );
-  await client.query('DELETE FROM "Session" WHERE "userId" = $1', [result.rows[0].id]);
+  let adminId;
+  if (existing.rows.length > 0) {
+    if (!existing.rows[0].isPlatformAdmin) {
+      throw new Error("Bu e-posta zaten platform yöneticisi olmayan bir kullanıcıya ait. Otomatik olarak üzerine yazılmadı.");
+    }
+    adminId = existing.rows[0].id;
+    console.log(`Platform yöneticisi zaten mevcut; şifre yeniden yazılmadı: ${email}`);
+  } else {
+    const userId = crypto.randomUUID();
+    const result = await client.query(
+      `INSERT INTO "User" (id, email, "passwordHash", name, "isPlatformAdmin", "isSuspended", "mustChangePassword")
+       VALUES ($1, $2, $3, 'Platform Yöneticisi', true, false, true)
+       RETURNING id`,
+      [userId, email, passwordHash]
+    );
+    adminId = result.rows[0].id;
+    console.log(`Platform yöneticisi oluşturuldu: ${email}. İlk girişte şifre değişimi zorunlu.`);
+  }
+  await client.query('DELETE FROM "Session" WHERE "userId" = $1', [adminId]);
   await client.query("COMMIT");
   console.log(`Platform yöneticisi hazır: ${email}. Önceki oturumlar güvenlik için kapatıldı.`);
 } catch (error) {
