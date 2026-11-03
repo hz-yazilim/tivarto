@@ -82,8 +82,8 @@ export const DEMO_USERS: Record<
     email: "admin@tiverto.dev",
     name: "Platform Yöneticisi",
     isPlatformAdmin: true,
-    // Demo kolaylığı: platform yöneticisi işletme paneline de geçebilsin.
-    tenantId: DEMO_TENANT_ID,
+    // Platform yöneticisinin işletme üyeliği yoktur.
+    tenantId: null,
   },
   business: {
     id: "demo-user-owner",
