@@ -394,3 +394,22 @@ src/
 ---
 
 Tivarto — **İşletmeni yönet, ticaretini büyüt.**
+
+
+## Platform operations center
+
+The internal platform area is available only after server-side platform-admin authorization. Its entry point is not linked from the public landing page.
+
+### Operational modules
+- **Accounts:** searchable user directory, reversible account suspension and revocation of all active sessions. Platform-admin accounts are protected from this action.
+- **Tenants:** status and plan management, with platform audit events.
+- **Feature flags:** centrally stored switches with mandatory change reasons. The `maintenance_mode` flag is enforced by the shared writable-tenant guard; other flags must be consumed by their target modules before they change product behavior.
+- **Support:** tenant-scoped support request creation and a cross-tenant internal support queue.
+- **System health:** application/database status and presence checks for optional integration configuration. Presence checks are not provider connectivity tests.
+- **Audit:** platform changes include actor, action, target, reason, before/after data and timestamp. Platform audit records are protected against UPDATE/DELETE by a database trigger and can be exported as CSV (latest 2,000 records).
+
+### Integrations not yet active
+Automatic payment collection, recurring subscription billing, provider refunds/cancellations, e-invoice/e-archive, outbound email, staff invitation delivery, MFA and advanced admin role delegation require provider credentials and end-to-end workflows. The current payment page records external/manual collections only; it does not charge a card or create an invoice. These capabilities must not be presented as active until the relevant integration is configured and tested.
+
+### Database rollout
+New schema changes are delivered as Prisma migrations. Render startup applies pending migrations and then reapplies the idempotent PostgreSQL RLS policies, including the tenant-scoped support-ticket table.
