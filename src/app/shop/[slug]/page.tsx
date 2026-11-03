@@ -6,6 +6,7 @@ import StorefrontOrder from "@/components/storefront-order";
 import DemoBanner from "@/components/demo-banner";
 import DemoRoleSwitcher from "@/components/demo-role-switcher";
 import { DEMO_ACTIVE } from "@/lib/demo-config";
+import { normalizeWhatsAppNumber } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 
@@ -106,7 +107,7 @@ export default async function ShopPage({
   const data = await fetchStorefrontData(slug, cat);
   if (!data) notFound();
 
-  const whatsapp = (data.settings?.whatsapp ?? "").replace(/\D/g, "");
+  const whatsapp = normalizeWhatsAppNumber(data.settings?.whatsapp ?? "");
 
   return (
     <div className="min-h-screen bg-secondary">
@@ -262,7 +263,6 @@ export default async function ShopPage({
         <StorefrontOrder
           tenantId={data.tenantId}
           tenantName={data.tenantName}
-          whatsappNumber={whatsapp}
           products={data.products.map((p) => ({
             id: p.id,
             name: p.name,
