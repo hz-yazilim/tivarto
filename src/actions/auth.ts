@@ -10,6 +10,7 @@ import {
   createSession,
   destroySession,
   destroyAllSessionsForUser,
+  pruneExpiredSessions,
   SESSION_TTL_MS,
 } from "@/lib/auth";
 import {
@@ -83,21 +84,27 @@ export async function loginAction(
     return { error: "E-posta veya şifre hatalı." };
   }
 
-  // Aktif işletmeyi oturum açılışında belirle (RLS: üyelik okuması için platform bağlamı).
-  const activeTenantId = await withPlatform(async (tx) => {
-    const membership = await tx.membership.findFirst({
+  // Başarılı girişlerde süresi dolmuş oturumları fırsat buldukça temizle.
+  // Ayrı bir sürekli çalışan servis/cron gerektirmez.
+  await pruneExpiredSessions().catch(() => 0);
+
+  // Kullanıcının tüm işletme üyeliklerini getir; birden fazlaysa panel seçimi açılır.
+  const memberships = user.isPlatformAdmin ? [] : await withPlatform(async (tx) =>
+    tx.membership.findMany({
       where: { userId: user.id },
-      orderBy: { id: "asc" },
+      orderBy: { tenant: { name: "asc" } },
       select: { tenantId: true },
-    });
-    return membership?.tenantId ?? null;
-  });
+    })
+  );
+  const activeTenantId = memberships[0]?.tenantId ?? null;
 
   const token = await createSession(user.id, activeTenantId);
   await setSessionCookie(token);
 
   if (user.mustChangePassword) redirect("/change-password");
-  redirect(user.isPlatformAdmin ? "/admin" : "/panel");
+  if (user.isPlatformAdmin) redirect("/admin");
+  if (memberships.length === 0) redirect("/hesap-yok");
+  redirect(memberships.length > 1 ? "/panel-secimi" : "/panel");
 }
 
 /** DB'siz önizlemede tek izin verilen demo oturumu platform yöneticisidir. */
@@ -240,6 +247,36 @@ export async function registerAction(
   redirect("/panel-secimi");
 }
 
+/** Oturum açmış kullanıcının yalnızca üyesi olduğu işletmeye geçmesini sağlar. */
+export async function switchActiveTenantAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (session.user.mustChangePassword) redirect("/change-password");
+
+  const tenantId = str(formData, "tenantId");
+  if (!tenantId) redirect("/panel-secimi");
+
+  const membership = await withPlatform((tx) =>
+    tx.membership.findFirst({
+      where: { userId: session.user.id, tenantId },
+      select: { tenantId: true },
+    })
+  );
+  if (!membership) redirect("/hesap-yok");
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  if (!token) redirect("/login");
+
+  const changed = await prisma.session.updateMany({
+    where: { token, userId: session.user.id, expiresAt: { gt: new Date() } },
+    data: { activeTenantId: tenantId },
+  });
+  if (changed.count !== 1) redirect("/login");
+
+  redirect("/panel");
+}
+
 /** Oturumu kapatır ve giriş sayfasına yönlendirir. */
 export async function logoutAction(): Promise<void> {
   try {
@@ -275,7 +312,15 @@ export async function changePasswordAction(formData: FormData): Promise<void> {
   });
 
   await destroyAllSessionsForUser(session.user.id);
-  const token = await createSession(session.user.id);
+  const activeTenantId = session.user.isPlatformAdmin ? null : await withPlatform(async (tx) => {
+    const membership = await tx.membership.findFirst({
+      where: { userId: session.user.id },
+      orderBy: { tenant: { name: "asc" } },
+      select: { tenantId: true },
+    });
+    return membership?.tenantId ?? null;
+  });
+  const token = await createSession(session.user.id, activeTenantId);
   await setSessionCookie(token);
-  redirect(session.user.isPlatformAdmin ? "/admin" : "/panel");
+  redirect(session.user.isPlatformAdmin ? "/admin" : "/panel-secimi");
 }
