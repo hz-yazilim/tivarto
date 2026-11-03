@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { OrderStatus } from "@prisma/client";
-import { requireWritableTenantContext } from "@/lib/session.server";
+import { requireTenantContext, requireWritableTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
 import { str } from "@/lib/validation";
 
