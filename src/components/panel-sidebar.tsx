@@ -145,6 +145,12 @@ function SidebarFooter({ slug, isAdmin }: { slug: string; isAdmin: boolean }) {
   return (
     <div className="space-y-1 border-t border-border px-2 py-3">
       <Link
+        href="/panel-secimi"
+        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+      >
+        <Building2 className="h-5 w-5 shrink-0" /> İşletme değiştir
+      </Link>
+      <Link
         href={`/shop/${slug}`}
         className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
       >
