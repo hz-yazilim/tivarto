@@ -32,14 +32,7 @@ panelinden (`/admin`) işletmeleri, paketleri ve ödemeleri yönetir.
 | Müşteri (demo) | `/musteri` | Siparişlerim + `/shop/demo` vitrininden alışveriş |
 | Anonim | `/`, `/login`, `/register`, `/shop/[slug]` | Vitrinden sipariş verebilir |
 
-> **Demo hızlı giriş:** Demo katmanı açıkken (`DATABASE_URL` tanımlı değilse)
-> `/login` ekranında şifreyle giriş geçici olarak kapalıdır. Bir panel rolüne
-> tıklayarak e-posta veya şifre girmeden **Platform Yöneticisi / İşletme
-> Yetkilisi / Müşteri** olarak devam edebilirsiniz. Ana sayfadan da tek tıkla
-> panele geçiş yapılabilir. Demo modunda `/register` de doğrudan örnek işletme
-> paneline giriş sunar; veritabanı olmadığı için gerçek hesap oluşturmaz.
-> Veritabanı bağlandığında demo girişi kapanır ve normal e-posta/şifre girişi
-> otomatik olarak devreye girer.
+> **Örnek veri ve demo giriş kapalıdır.** Uygulama, örnek kullanıcı veya işletme üretmez. İlk platform yöneticisi, veritabanı hazırlandıktan sonra yalnızca sizin belirlediğiniz e-posta ve güçlü parola ile oluşturulur.
 
 ---
 
@@ -58,8 +51,7 @@ panelinden (`/admin`) işletmeleri, paketleri ve ödemeleri yönetir.
 - Merkez yönetim paneli (işletmeler, planlar, ödemeler, denetim kayıtları)
 - RLS ile işletmeler arası veri izolasyonu (fail-closed)
 - Mobil uyumlu arayüzler
-- **Veritabanı olmadan demo katmanı:** örnek verilerle üç panel de gezilebilir,
-  giriş bilgileri doğrulanmaz (yalnızca `DATABASE_URL` tanımsızken)
+- Örnek/demo veri ve doğrulanmayan giriş varsayılan olarak kapalıdır.
 
 ### 🚧 Henüz yok / sıradaki işler
 
@@ -119,25 +111,14 @@ Gerçek veritabanıyla çalışmak için:
 npm run db:migrate:deploy       # migration'ları uygula (init: tüm tablolar)
 npm run db:app-role             # kısıtlı uygulama rolü (RLS için şart)
 npm run db:rls                  # RLS politikalarını uygula + doğrula
-npm run db:seed                 # demo verisi (DEMO_MODE=true ise)
+npm run db:bootstrap-admin      # yalnızca sizin belirlediğiniz platform yöneticisini oluşturur
 
 npm run dev                     # http://localhost:3000
 ```
 
-> `DATABASE_URL` tanımlandığı anda demo giriş kolaylığı otomatik kapanır ve
-> gerçek e-posta/şifre doğrulaması devreye girer. Ayrıca `DEMO_MODE=false`
-> yapmanız önerilir.
+> Demo giriş kapalıdır; `DEMO_MODE=true` yalnızca izole yerel testte kullanılmalıdır. Canlı ortamda açık bırakmayın.
 
-Seed sonrası demo hesaplar (şifre `Tiverto!2026`, `SEED_PASSWORD` ile değiştirilebilir):
-
-| Hesap | E-posta | Panel |
-|---|---|---|
-| Platform yöneticisi | `admin@tiverto.dev` | `/admin` |
-| Demo işletme | `demo@tiverto.dev` | `/panel` |
-| Demo vitrin | — | `/shop/demo` |
-
-> ⚠️ **Demo hesapları canlı ortamda mutlaka silin/değiştirin.** `DEMO_MODE=false`
-> iken seed çalışmaz.
+İlk platform yöneticisi için `BOOTSTRAP_ADMIN_EMAIL` ve `BOOTSTRAP_ADMIN_PASSWORD` değerlerini ortam değişkeni olarak tanımlayıp `npm run db:bootstrap-admin` çalıştırın. Parola en az 14 karakter olmalı; işlemden sonra `BOOTSTRAP_ADMIN_PASSWORD` değişkenini kaldırın. Bu işlem örnek işletme veya ürün oluşturmaz.
 
 ---
 
@@ -148,14 +129,11 @@ Seed sonrası demo hesaplar (şifre `Tiverto!2026`, `SEED_PASSWORD` ile değişt
 | `DATABASE_URL` | ✅ | Uygulamanın kullandığı bağlantı. **Superuser olmayan** kullanıcı (RLS için şart) |
 | `DIRECT_URL` | ✅ | Migration/RLS için doğrudan bağlantı (yönetici kullanıcı) |
 | `NEXT_PUBLIC_ROOT_DOMAIN` | ➖ | Vitrin subdomain kökü (`tiverto.app`). Boşsa subdomain yönlendirme kapalıdır; vitrin `/shop/[slug]` üzerinden çalışır |
-| `DEMO_MODE` | ➖ | `false` değilse arayüzlerde "Demo" bilgilendirmesi görünür |
-| `DEMO_FAKE_DATA` | ➖ | `true` ise `DATABASE_URL` tanımlı olsa bile bellek içi demo verisi kullanılır. **Canlı ortamda asla açmayın** |
-| `SEED_PASSWORD` | ➖ | Demo hesapların şifresi |
+| `DEMO_MODE` | ➖ | Yalnızca `true` olduğunda demo modu açılır; varsayılan kapalıdır |
+| `BOOTSTRAP_ADMIN_EMAIL` | ➖ | İlk platform yöneticisinin e-posta adresi |\n| `BOOTSTRAP_ADMIN_PASSWORD` | ➖ | İlk platform yöneticisi için tek seferlik, en az 14 karakterli parola |
 
-**Demo katmanının açık olma koşulu:** `DEMO_MODE !== "false"` **VE**
-(`DATABASE_URL` tanımlı değil **VEYA** `DEMO_FAKE_DATA === "true"`).
-Yani veritabanı bağlandığında "her şifreyi kabul et" davranışı kendiliğinden
-kapanır; ek bir kod değişikliği gerekmez.
+
+**Demo katmanı varsayılan olarak kapalıdır.** `DEMO_MODE=true` yalnızca izole yerel test ortamında kullanılmalıdır. Canlı ortamda demo modu açılmamalıdır.
 
 Hassas değerler **asla** kaynak koduna yazılmaz; yalnızca ortam değişkeni olarak tutulur.
 
@@ -172,9 +150,9 @@ Hassas değerler **asla** kaynak koduna yazılmaz; yalnızca ortam değişkeni o
 | `npm run lint` | ESLint |
 | `npm run db:migrate:deploy` | `scripts/migrate.mjs` — bekleyen migration'ları uygular (idempotent) |
 | `npm run db:rls` | `prisma/rls.sql` politikalarını uygular **ve doğrular** |
-| `npm run db:seed` | Demo verisi (`DEMO_MODE=false` ise atlanır) |
+| `npm run db:bootstrap-admin` | Yalnızca ortam değişkenlerinde belirtilen platform yöneticisini oluşturur/günceller; örnek veri üretmez |
 | `npm run db:app-role` | RLS'i **etkin** kılan kısıtlı uygulama rolünü oluşturur |
-| `npm run db:setup` | migration + RLS + seed (tek seferde) |
+| `npm run db:setup` | migration + RLS kurulumu |
 | `npm run db:migrate` | `prisma migrate dev` (yalnızca yerel geliştirme) |
 
 Migration'lar `scripts/migrate.mjs` ile uygulanır. Bu runner `pg` sürücüsünü kullanır
