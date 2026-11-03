@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { GoodsReceiptStatus } from "@prisma/client";
-import { requireTenantContext } from "@/lib/session.server";
+import { requireWritableTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
 import { optionalStr, str, toInt, type FormState } from "@/lib/validation";
 
@@ -27,7 +27,7 @@ export async function createGoodsReceiptAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { tenant, user } = await requireTenantContext();
+  const { tenant, user } = await requireWritableTenantContext();
 
   const supplierId = optionalStr(formData, "supplierId") ?? null;
   const statusRaw = str(formData, "status") || "PENDING";
@@ -146,7 +146,9 @@ export async function createGoodsReceiptAction(
 }
 
 export async function listGoodsReceipts(tenantId: string) {
-  return withTenant(tenantId, async (tx) => {
+  const { tenant } = await requireTenantContext();
+  if (tenant.id !== tenantId) throw new Error("Bu işletmenin mal kabul kayıtlarına erişemezsiniz.");
+  return withTenant(tenant.id, async (tx) => {
     return tx.goodsReceipt.findMany({
       orderBy: { createdAt: "desc" },
       take: 100,
