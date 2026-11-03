@@ -20,7 +20,7 @@ export default async function AdminDashboard() {
     <div className="space-y-7">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[.18em] text-purple-300">TİVERTO / MERKEZ YÖNETİM</p>
+          <p className="text-xs font-semibold uppercase tracking-[.18em] text-purple-300">TİVARTO / MERKEZ YÖNETİM</p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Genel Bakış</h1>
           <p className="mt-1 text-sm text-muted-foreground">Platformdaki işletmeleri, kullanıcıları ve tahsilat kayıtlarını tek noktadan takip edin.</p>
         </div>
