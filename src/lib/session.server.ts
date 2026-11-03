@@ -132,6 +132,15 @@ export async function requireTenantContext(): Promise<TenantContext> {
   }
 }
 
+/** Askıya alınmış işletmelerin veri değiştiren işlemlerini engeller. */
+export async function requireWritableTenantContext(): Promise<TenantContext> {
+  const context = await requireTenantContext();
+  if (context.tenant.status !== "ACTIVE") {
+    redirect("/panel?error=isletme-askida");
+  }
+  return context;
+}
+
 
 /** Sadece platform yöneticisi. Değilse panele gönderir. */
 export async function requirePlatformAdmin(): Promise<ValidSession> {
