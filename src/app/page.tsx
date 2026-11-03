@@ -1,7 +1,4 @@
 import Link from "next/link";
-import DemoRoleSwitcher from "@/components/demo-role-switcher";
-import { DEMO_SHOP_SLUG } from "@/lib/constants";
-import { DEMO_ACTIVE } from "@/lib/demo-config";
 
 const FEATURES = [
   { title: "Ürün Yönetimi", desc: "Ürünlerini tek ekrandan ekle, düzenle ve kategorilere ayır.", icon: "📦", tag: "Düzenli katalog" },
@@ -71,38 +68,6 @@ export default function Home() {
           ))}
         </div>
       </section>
-
-      {DEMO_ACTIVE && (
-        <section className="tiverto-glass relative z-10 mb-12 rounded-2xl p-5 sm:p-7">
-          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[.18em] text-rose-300">KEŞFET</p>
-              <h2 className="mt-1 text-xl font-bold">Demo panellerini deneyin</h2>
-              <p className="mt-1 text-sm leading-6 text-zinc-400">Örnek verilerle müşteri ve işletme ekranlarını inceleyebilirsiniz.</p>
-            </div>
-            <span className="w-fit rounded-full border border-purple-400/20 bg-purple-500/10 px-3 py-1.5 text-xs text-purple-200">Demo sürümü</span>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-black/10 p-3 sm:p-4">
-            <DemoRoleSwitcher />
-          </div>
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-zinc-400">
-            <Link href={`/shop/${DEMO_SHOP_SLUG}`} className="hover:text-purple-300">Müşteri vitrini →</Link>
-            <Link href="/musteri" className="hover:text-purple-300">Siparişlerim →</Link>
-            <Link href="/panel" className="hover:text-purple-300">İşletme paneli →</Link>
-          </div>
-        </section>
-      )}
-
-      {DEMO_ACTIVE && (
-        <section className="relative z-10 rounded-2xl border border-rose-400/15 bg-rose-500/[0.06] p-5 text-sm text-rose-100/80 sm:p-6">
-          <h2 className="font-semibold text-rose-100">Demo hakkında</h2>
-          <ul className="mt-2 list-inside list-disc space-y-1.5 text-xs leading-5 text-rose-100/65 sm:text-sm">
-            <li>Bu sürüm geliştirme aşamasındadır ve örnek verilerle çalışır.</li>
-            <li>Demo oturumlarında girilen bilgiler kalıcı veritabanına kaydedilmez.</li>
-            <li>Demo verileri gerçek işletme verisi değildir; gerçek müşteri bilgisi veya ödeme kullanmayın.</li>
-          </ul>
-        </section>
-      )}
 
       <footer className="relative z-10 mt-14 border-t border-white/10 pt-7 text-center text-xs text-zinc-500">
         © {new Date().getFullYear()} Tivarto · İşletmeni yönet, ticaretini büyüt.
