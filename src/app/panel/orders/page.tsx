@@ -17,6 +17,14 @@ const STATUS_LABEL: Record<string, string> = Object.fromEntries(
   STATUS_OPTIONS.map((o) => [o.value, o.label])
 );
 
+const NEXT_STATUSES: Record<string, string[]> = {
+  NEW: ["CONFIRMED", "CANCELLED"],
+  CONFIRMED: ["PREPARING", "CANCELLED"],
+  PREPARING: ["COMPLETED", "CANCELLED"],
+  COMPLETED: [],
+  CANCELLED: [],
+};
+
 export default async function OrdersPage() {
   const { tenant } = await getTenantContext();
   const orders = await listOrders(tenant.id);
@@ -102,23 +110,24 @@ export default async function OrdersPage() {
                     <div className="font-semibold">
                       {Number(o.total).toLocaleString("tr-TR")} TL
                     </div>
-                    <form action={updateOrderStatusAction} className="flex items-center gap-2">
-                      <input type="hidden" name="id" value={o.id} />
-                      <select
-                        name="status"
-                        defaultValue={o.status}
-                        className="rounded-md border border-input bg-background px-2 py-1 text-xs"
-                      >
-                        {STATUS_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      <SubmitButton size="sm" variant="outline">
-                        Güncelle
-                      </SubmitButton>
-                    </form>
+                    {NEXT_STATUSES[o.status]?.length ? (
+                      <form action={updateOrderStatusAction} className="flex items-center gap-2">
+                        <input type="hidden" name="id" value={o.id} />
+                        <select
+                          name="status"
+                          defaultValue={o.status}
+                          className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+                        >
+                          <option value={o.status} disabled>{STATUS_LABEL[o.status]} (Mevcut)</option>
+                          {STATUS_OPTIONS.filter((option) => NEXT_STATUSES[o.status].includes(option.value)).map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                        <SubmitButton size="sm" variant="outline">Güncelle</SubmitButton>
+                      </form>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Son durum</span>
+                    )}
                   </div>
                 </div>
               ))
