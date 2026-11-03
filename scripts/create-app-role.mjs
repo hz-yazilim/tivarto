@@ -13,8 +13,8 @@
  *
  * Kullanım:
  *   DIRECT_URL="postgresql://admin:...@host/db" \
- *   APP_DB_USER=tivarto_app APP_DB_PASSWORD="guclu-bir-sifre" \
- *   node scripts/create-app-role.mjs
+ *   DATABASE_URL="postgresql://tivarto_app:...@...:6543/postgres" \
+ *   APP_DB_USER=tivarto_app node scripts/create-app-role.mjs
  *
  * Çıktı olarak uygulamanın kullanması gereken DATABASE_URL'i yazdırır.
  */
@@ -22,16 +22,23 @@ import { Client } from "pg";
 
 const adminUrl = process.env.DIRECT_URL || process.env.DATABASE_URL || "";
 const appUser = process.env.APP_DB_USER || "tivarto_app";
-const appPassword = process.env.APP_DB_PASSWORD || "";
+const runtimeUrl = process.env.DATABASE_URL || "";
+let appPassword = "";
+
+try {
+  const parsedRuntimeUrl = new URL(runtimeUrl);
+  if (decodeURIComponent(parsedRuntimeUrl.username) !== appUser) {
+    throw new Error("DATABASE_URL uygulama rolüyle eşleşmiyor.");
+  }
+  appPassword = decodeURIComponent(parsedRuntimeUrl.password);
+  if (!appPassword) throw new Error("DATABASE_URL içinde parola bulunamadı.");
+} catch (error) {
+  console.error("HATA: DATABASE_URL uygulama rolü için geçerli bir PostgreSQL bağlantısı olmalıdır.", error.message);
+  process.exit(1);
+}
 
 if (!adminUrl) {
   console.error("HATA: DIRECT_URL (yönetici bağlantısı) tanımlı değil.");
-  process.exit(1);
-}
-if (!appPassword) {
-  console.error(
-    "HATA: APP_DB_PASSWORD tanımlı değil. Rol için güçlü bir şifre verin."
-  );
   process.exit(1);
 }
 if (!/^[a-z_][a-z0-9_]{2,30}$/.test(appUser)) {
@@ -58,22 +65,21 @@ async function main() {
       );
       await client.query(createSql[0].sql);
       console.log(`✓ ${appUser} rolü oluşturuldu.`);
-    } else if (process.env.ROTATE_APP_DB_PASSWORD === "true") {
-      // Parola yalnızca açıkça istendiğinde döndürülür; her deploy'da
-      // değişmesi, yayındaki önceki deployment'ın DB bağlantısını koparır.
-      await client.query(`SET ROLE "${appUser}"`);
-      try {
-        const { rows: passwordSql } = await client.query(
-          `SELECT format('ALTER ROLE CURRENT_USER WITH PASSWORD %L', $1::text) AS sql`,
-          [appPassword]
-        );
-        await client.query(passwordSql[0].sql);
-      } finally {
-        await client.query("RESET ROLE");
-      }
-      console.log(`✓ ${appUser} parolası kontrollü olarak yenilendi.`);
     } else {
-      console.log(`= ${appUser} rolü zaten var; parola korunuyor, yetkiler güncelleniyor.`);
+      console.log(`= ${appUser} rolü zaten var; DATABASE_URL parolasıyla eşitlenecek.`);
+    }
+
+    // Runtime bağlantısının kullandığı parola tek kaynak olarak DATABASE_URL'den
+    // alınır; böylece build sırasında rol parolası ile uygulama adresi ayrışmaz.
+    await client.query(`SET ROLE "${appUser}"`);
+    try {
+      const { rows: passwordSql } = await client.query(
+        `SELECT format('ALTER ROLE CURRENT_USER WITH PASSWORD %L', $1::text) AS sql`,
+        [appPassword]
+      );
+      await client.query(passwordSql[0].sql);
+    } finally {
+      await client.query("RESET ROLE");
     }
 
     // Yetkiler (idempotent). Tanımlayıcılar format(%I) ile kaçırılır.
