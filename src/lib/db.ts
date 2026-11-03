@@ -20,7 +20,26 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createClient() {
-  const connectionString = process.env.DATABASE_URL;
+  const configuredUrl = process.env.DATABASE_URL ?? "";
+  const appPassword = process.env.APP_DB_PASSWORD;
+  const appUser = process.env.APP_DB_USER || "tivarto_app";
+  let connectionString = configuredUrl;
+
+  // Üretim kurulumunda app rolünün parolası APP_DB_PASSWORD ile yönetilir.
+  // DATABASE_URL içindeki eski parola build sırasında değişmiş olabilir;
+  // runtime bağlantısını aynı gizli parola ile eşitle.
+  if (configuredUrl && appPassword) {
+    try {
+      const parsed = new URL(configuredUrl);
+      if (decodeURIComponent(parsed.username) === appUser) {
+        parsed.password = appPassword;
+        connectionString = parsed.toString();
+      }
+    } catch {
+      console.error("DATABASE_URL geçerli bir PostgreSQL URL biçiminde değil.");
+    }
+  }
+
   if (!connectionString) {
     // Uygulama açılışta patlamasın: hata yalnızca sorgu anında ortaya çıksın.
     // (/api/health bu durumda 503 döner.)
