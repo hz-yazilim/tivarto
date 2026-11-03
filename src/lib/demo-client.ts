@@ -45,6 +45,7 @@ const TENANT_SCOPED = new Set([
   "orderItem",
   "auditLog",
   "payment",
+  "supportTicket",
 ]);
 
 /** Bu projede kullanılan ilişkiler (include/select/_count için). */
@@ -56,6 +57,7 @@ const RELATIONS: Record<string, Record<string, Relation>> = {
   },
   session: { user: { model: "user", kind: "one", fk: "userId" } },
   tenant: {
+    supportTickets: { model: "supportTicket", kind: "many", refFk: "tenantId" },
     plan: { model: "plan", kind: "one", fk: "planId" },
     storeSettings: { model: "storeSettings", kind: "one", refFk: "tenantId" },
     memberships: { model: "membership", kind: "many", refFk: "tenantId" },
@@ -113,6 +115,10 @@ const RELATIONS: Record<string, Record<string, Relation>> = {
   },
   auditLog: { tenant: { model: "tenant", kind: "one", fk: "tenantId" } },
   payment: { tenant: { model: "tenant", kind: "one", fk: "tenantId" } },
+  supportTicket: {
+    tenant: { model: "tenant", kind: "one", fk: "tenantId" },
+    creator: { model: "user", kind: "one", fk: "createdById" },
+  },
 };
 
 const MODELS = [
@@ -133,6 +139,9 @@ const MODELS = [
   "orderItem",
   "auditLog",
   "payment",
+  "featureFlag",
+  "platformAuditLog",
+  "supportTicket",
 ];
 
 const scopeStorage = new AsyncLocalStorage<Scope>();
