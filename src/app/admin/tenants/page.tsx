@@ -29,10 +29,11 @@ export default async function TenantsPage() {
 
       <div className="rounded-xl border bg-card p-6">
         <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] text-sm divide-y divide-border">
+        <table className="w-full min-w-[980px] text-sm divide-y divide-border">
           <thead>
             <tr className="text-left text-muted-foreground">
               <th className="p-4">İşletme</th>
+              <th className="p-4">Hesap Sahibi</th>
               <th className="p-4">Plan Ata</th>
               <th className="p-4">Durum Değiştir</th>
               <th className="p-4">Ürün</th>
@@ -47,6 +48,14 @@ export default async function TenantsPage() {
                   <td className="p-4 align-top">
                     <div className="font-medium">{t.name}</div>
                     <div className="text-xs text-muted-foreground">{t.slug}</div>
+                  </td>
+                  <td className="p-4 align-top">
+                    {t.memberships.length > 0 ? t.memberships.map((membership: any) => (
+                      <div key={membership.user.id} className="mb-1 text-xs">
+                        <div className="font-medium">{membership.user.name}</div>
+                        <div className="text-muted-foreground">{membership.user.email}</div>
+                      </div>
+                    )) : <span className="text-xs text-amber-500">Sahip atanmamış</span>}
                   </td>
                   <td className="p-4 align-top">
                     <form action={updateTenantPlan} className="inline">
@@ -109,7 +118,7 @@ export default async function TenantsPage() {
                 </tr>
               ))
             ) : (
-              <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">İşletme yok.</td></tr>
+              <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">İşletme yok.</td></tr>
             )}
           </tbody>
         </table>
