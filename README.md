@@ -48,7 +48,7 @@ panelinden (`/admin`) işletmeleri, paketleri ve ödemeleri yönetir.
 - Müşteri ve tedarikçi kayıtları
 - Sipariş yönetimi + durum takibi (iptalde stok geri eklenir)
 - Herkese açık vitrin, sepet, sipariş oluşturma, WhatsApp sipariş özeti
-- Merkez yönetim paneli (işletmeler, planlar, ödemeler, denetim kayıtları)
+- Merkez yönetim paneli (işletmeler, planlar, ödemeler, denetim kayıtları)\n- Satış raporları (30 günlük ciro, tahmini brüt kâr, 7 günlük trend, çok satan ürünler, kritik stok ve CSV dışa aktarma)
 - RLS ile işletmeler arası veri izolasyonu (fail-closed)
 - Mobil uyumlu arayüzler
 - Örnek/demo veri ve doğrulanmayan giriş varsayılan olarak kapalıdır.
@@ -215,7 +215,7 @@ src/
     (public)               # /, /login, /register, /hesap-yok, /shop/[slug]
     panel/                 # işletme yönetim paneli (korumalı)
     admin/                 # merkez yönetim paneli (yalnızca platform admin)
-    musteri/               # müşteri "Siparişlerim" paneli (demo)
+    musteri/               # müşteri "Siparişlerim" paneli
     api/health, api/upload # sağlık kontrolü + görsel yükleme
   actions/                 # server action'lar (mutasyonlar)
   components/              # arayüz bileşenleri
