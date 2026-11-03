@@ -114,6 +114,8 @@ npm run dev                     # http://localhost:3000
 
 > Demo giriş kapalıdır; `DEMO_MODE=true` yalnızca izole yerel testte kullanılmalıdır. Canlı ortamda açık bırakmayın.
 
+Eski örnek veriler daha önce veritabanına yazıldıysa `npm run db:clean-demo` önce yalnızca bulunacak kayıtları raporlar. Silme için ayrıca `CONFIRM_DEMO_CLEANUP=DELETE_DEMO_DATA` onayı gerekir; komut yalnızca eski `demo` slug'lı örnek işletmeyi ve eski sabit demo e-postalarını hedefler.
+
 İlk platform yöneticisi için `BOOTSTRAP_ADMIN_EMAIL` ve `BOOTSTRAP_ADMIN_PASSWORD` değerlerini ortam değişkeni olarak tanımlayıp `npm run db:bootstrap-admin` çalıştırın. Parola en az 14 karakter olmalı; işlemden sonra `BOOTSTRAP_ADMIN_PASSWORD` değişkenini kaldırın. Bu işlem örnek işletme veya ürün oluşturmaz.
 
 ---
@@ -148,6 +150,7 @@ Hassas değerler **asla** kaynak koduna yazılmaz; yalnızca ortam değişkeni o
 | `npm run db:migrate:deploy` | `scripts/migrate.mjs` — bekleyen migration'ları uygular (idempotent) |
 | `npm run db:rls` | `prisma/rls.sql` politikalarını uygular **ve doğrular** |
 | `npm run db:bootstrap-admin` | Yalnızca ortam değişkenlerinde belirtilen platform yöneticisini oluşturur/günceller; örnek veri üretmez |
+| `npm run db:clean-demo` | Eski sabit demo kayıtlarını önce dry-run gösterir; silmek için açık onay gerekir |
 | `npm run db:app-role` | RLS'i **etkin** kılan kısıtlı uygulama rolünü oluşturur |
 | `npm run db:setup` | migration + RLS kurulumu |
 | `npm run db:migrate` | `prisma migrate dev` (yalnızca yerel geliştirme) |
@@ -318,7 +321,7 @@ Demo modu varsayılan olarak kapalıdır (`DEMO_MODE=false`). Canlı ortamda dem
 | Admin panelde liste boş | RLS fail-closed: platform sorguları `withPlatform()` kullanmalı |
 | Görseller deploy sonrası kayboluyor | Render diski geçici; kalıcı depolama henüz yok |
 | `prisma generate` motor indiremiyor | `scripts/prisma-generate.mjs` (postinstall/build) indirmeyi atlar; `npm run build` ile tekrar deneyin |
-| Demo girişi açık kaldı / paneller boş | `DATABASE_URL` tanımlı mı? Demo veri katmanı yalnızca DB yokken açılır. `DEMO_FAKE_DATA=true` ile zorlayabilirsiniz (canlıda asla) |
+| Paneller veri göstermiyor | Veritabanı bağlantısı ve migration durumunu kontrol edin; örnek veri otomatik oluşturulmaz |
 | Giriş yaptım ama /panel "İşletme hesabı bulunamadı" diyor | Müşteri rolüyle girilmiş; üstteki Demo şeridinden "İşletme Yetkilisi"ni seçin |
 | Panelde "İşletme bulunamadı" | `Session.activeTenantId` boş; çıkış yapıp yeniden giriş yapın |
 | Admin panelde liste boş / RLS etkisiz | `npm run db:rls` çıktısındaki superuser uyarısına bakın, `db:app-role` ile kısıtlı role geçin |
