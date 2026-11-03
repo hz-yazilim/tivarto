@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import type { TenantStatus, SupportTicketStatus } from "@prisma/client";
 import { prisma, withPlatform, withTenant } from "@/lib/db";
-import { requirePlatformAdmin, requireTenantContext } from "@/lib/session.server";
+import { requirePlatformAdmin, requireTenantContext, requireWritableTenantContext } from "@/lib/session.server";
 import { destroyAllSessionsForUser } from "@/lib/auth";
-import { str, toInt, toNumber } from "@/lib/validation";
+import { isValidEmail, str, toInt, toNumber } from "@/lib/validation";
 
 /**
  * PLATFORM YÖNETİCİSİ İŞLEMLERİ
@@ -516,6 +516,7 @@ export async function removeTenantMemberAction(formData: FormData): Promise<void
 
   revalidatePath("/panel/team");
   revalidatePath("/admin/users");
+  revalidatePath("/admin/tenants");
   revalidatePath("/admin/logs");
 }
 
@@ -549,4 +550,54 @@ export async function deleteOrphanPlatformUserAction(formData: FormData): Promis
 
   revalidatePath("/admin/users");
   revalidatePath("/admin/logs");
+}
+
+
+/** İşletme sahibi, platformda zaten hesabı bulunan bir kullanıcıyı personel olarak ekleyebilir. */
+export async function addExistingTenantMemberAction(formData: FormData): Promise<void> {
+  const context = await requireWritableTenantContext();
+  if (context.role !== "OWNER") return;
+
+  const email = str(formData, "email").toLowerCase();
+  if (!isValidEmail(email)) redirect("/panel/team?error=invalid-email");
+
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT set_config('app.platform', ${"on"}, true)`;
+    await tx.$executeRaw`SELECT set_config('app.tenant_id', ${context.tenant.id}, true)`;
+
+    const user = await tx.user.findUnique({
+      where: { email },
+      select: { id: true, isPlatformAdmin: true, isSuspended: true },
+    });
+    if (!user) return "not-found";
+    if (user.isPlatformAdmin || user.isSuspended) return "not-eligible";
+
+    const existing = await tx.membership.findFirst({
+      where: { tenantId: context.tenant.id, userId: user.id },
+      select: { id: true },
+    });
+    if (existing) return "already-member";
+
+    const membership = await tx.membership.create({
+      data: { tenantId: context.tenant.id, userId: user.id, role: "STAFF" },
+    });
+    await tx.auditLog.create({
+      data: {
+        tenantId: context.tenant.id,
+        userId: context.user.id,
+        action: "team.member.added",
+        entity: "Membership",
+        entityId: membership.id,
+        details: `Mevcut hesap personel olarak eklendi: ${email}`,
+      },
+    });
+    return "added";
+  });
+
+  if (result !== "added") redirect(`/panel/team?error=${result}`);
+  revalidatePath("/panel/team");
+  revalidatePath("/panel-secimi");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/tenants");
+  redirect("/panel/team?success=added");
 }
