@@ -109,7 +109,7 @@ export async function updateTenantStatus(formData: FormData): Promise<void> {
   if (!before || before.status === status) return;
   await prisma.tenant.update({ where: { id }, data: { status } });
   const admin = await requirePlatformAdmin();
-  await prisma.platformAuditLog.create({ data: { actorId: admin.user.id, action: "tenant.status.changed", targetType: "Tenant", targetId: id, reason: str(formData, "reason").slice(0, 300) || "İşletme durumu güncellendi", beforeData: { status: before.status }, afterData: { status } } });
+  await withPlatform((tx) => tx.platformAuditLog.create({ data: { actorId: admin.user.id, action: "tenant.status.changed", targetType: "Tenant", targetId: id, reason: str(formData, "reason").slice(0, 300) || "İşletme durumu güncellendi", beforeData: { status: before.status }, afterData: { status } } }));
   await withTenant(id, async (tx) => {
     await tx.auditLog.create({
       data: {
@@ -136,7 +136,7 @@ export async function updateTenantPlan(formData: FormData): Promise<void> {
 
   await prisma.tenant.update({ where: { id }, data: { planId } });
   const admin = await requirePlatformAdmin();
-  await prisma.platformAuditLog.create({ data: { actorId: admin.user.id, action: "tenant.plan.changed", targetType: "Tenant", targetId: id, reason, beforeData: { planId: tenant.planId }, afterData: { planId } } });
+  await withPlatform((tx) => tx.platformAuditLog.create({ data: { actorId: admin.user.id, action: "tenant.plan.changed", targetType: "Tenant", targetId: id, reason, beforeData: { planId: tenant.planId }, afterData: { planId } } }));
   revalidatePath("/admin/tenants");
 }
 
@@ -163,7 +163,7 @@ export async function createPlanAction(formData: FormData): Promise<void> {
     },
   });
   const admin = await requirePlatformAdmin();
-  await prisma.platformAuditLog.create({ data: { actorId: admin.user.id, action: "plan.created", targetType: "Plan", targetId: createdPlan.id, reason: "Yeni abonelik planı oluşturuldu", afterData: { name: createdPlan.name, priceMonthly: createdPlan.priceMonthly } } });
+  await withPlatform((tx) => tx.platformAuditLog.create({ data: { actorId: admin.user.id, action: "plan.created", targetType: "Plan", targetId: createdPlan.id, reason: "Yeni abonelik planı oluşturuldu", afterData: { name: createdPlan.name, priceMonthly: createdPlan.priceMonthly } } }));
   revalidatePath("/admin/plans");
 }
 
@@ -180,7 +180,7 @@ export async function deletePlanAction(formData: FormData): Promise<void> {
 
   await prisma.plan.deleteMany({ where: { id } });
   const admin = await requirePlatformAdmin();
-  await prisma.platformAuditLog.create({ data: { actorId: admin.user.id, action: "plan.deleted", targetType: "Plan", targetId: id, reason: "Kullanılmayan plan silindi", beforeData: { name: plan.name, priceMonthly: plan.priceMonthly } } });
+  await withPlatform((tx) => tx.platformAuditLog.create({ data: { actorId: admin.user.id, action: "plan.deleted", targetType: "Plan", targetId: id, reason: "Kullanılmayan plan silindi", beforeData: { name: plan.name, priceMonthly: plan.priceMonthly } } }));
   revalidatePath("/admin/plans");
 }
 
@@ -220,7 +220,7 @@ export async function createPaymentAction(formData: FormData): Promise<void> {
       },
     });
   });
-  await prisma.platformAuditLog.create({ data: { actorId: admin.user.id, action: "payment.manual_recorded", targetType: "Tenant", targetId: tenantId, reason: description || "Manuel tahsilat kaydı", afterData: { amount, currency: "TRY" } } });
+  await withPlatform((tx) => tx.platformAuditLog.create({ data: { actorId: admin.user.id, action: "payment.manual_recorded", targetType: "Tenant", targetId: tenantId, reason: description || "Manuel tahsilat kaydı", afterData: { amount, currency: "TRY" } } }));
   revalidatePath("/admin/payments");
   revalidatePath("/admin/logs");
 }
@@ -255,12 +255,12 @@ export async function createFeatureFlagAction(formData: FormData): Promise<void>
   const flag = await prisma.featureFlag.create({
     data: { key, name, description, category, enabled: false, updatedBy: admin.user.id, updatedAt: new Date() },
   });
-  await prisma.platformAuditLog.create({
+  await withPlatform((tx) => tx.platformAuditLog.create({
     data: {
       actorId: admin.user.id, action: "feature_flag.created", targetType: "FeatureFlag",
       targetId: flag.id, reason: "Yeni özellik anahtarı oluşturuldu", afterData: { key, enabled: false },
     },
-  });
+  }));
   revalidatePath("/admin/features");
 }
 
@@ -277,14 +277,14 @@ export async function setFeatureFlagAction(formData: FormData): Promise<void> {
     where: { id },
     data: { enabled, updatedBy: admin.user.id, updatedAt: new Date() },
   });
-  await prisma.platformAuditLog.create({
+  await withPlatform((tx) => tx.platformAuditLog.create({
     data: {
       actorId: admin.user.id, action: "feature_flag.changed", targetType: "FeatureFlag",
       targetId: id, reason,
       beforeData: { enabled: existing.enabled, key: existing.key },
       afterData: { enabled, key: existing.key },
     },
-  });
+  }));
   revalidatePath("/admin/features");
   revalidatePath("/admin/logs");
 }
@@ -293,7 +293,7 @@ export async function setFeatureFlagAction(formData: FormData): Promise<void> {
 export async function listPlatformAuditLogs(search = "") {
   await requirePlatformAdmin();
   const q = search.trim().slice(0, 80);
-  return prisma.platformAuditLog.findMany({
+  return withPlatform((tx) => tx.platformAuditLog.findMany({
     where: q ? {
       OR: [
         { action: { contains: q, mode: "insensitive" } },
@@ -304,7 +304,7 @@ export async function listPlatformAuditLogs(search = "") {
     } : undefined,
     orderBy: { createdAt: "desc" },
     take: 200,
-  });
+  }));
 }
 
 export async function listSupportTickets() {
@@ -343,14 +343,14 @@ export async function updateSupportTicketAction(formData: FormData): Promise<voi
     });
     return result;
   });
-  await prisma.platformAuditLog.create({
+  await withPlatform((tx) => tx.platformAuditLog.create({
     data: {
       actorId: admin.user.id, action: "support.ticket.updated", targetType: "SupportTicket",
       targetId: id, reason,
       beforeData: { status: ticket.status },
       afterData: { status: updated.status },
     },
-  });
+  }));
   revalidatePath("/admin/support");
   revalidatePath("/panel/support");
 }
@@ -407,14 +407,14 @@ export async function setPlatformUserSuspensionAction(formData: FormData): Promi
 
   await prisma.user.update({ where: { id: userId }, data: { isSuspended: suspended } });
   if (suspended) await destroyAllSessionsForUser(userId);
-  await prisma.platformAuditLog.create({
+  await withPlatform((tx) => tx.platformAuditLog.create({
     data: {
       actorId: admin.user.id, action: suspended ? "user.suspended" : "user.reactivated",
       targetType: "User", targetId: userId, reason,
       beforeData: { isSuspended: target.isSuspended },
       afterData: { isSuspended: suspended },
     },
-  });
+  }));
   revalidatePath("/admin/users");
   revalidatePath("/admin/logs");
 }
