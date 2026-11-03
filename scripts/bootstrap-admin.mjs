@@ -2,7 +2,7 @@
  * İlk platform yöneticisini güvenli biçimde oluşturur/günceller.
  *
  * Gerekli ortam değişkenleri: DATABASE_URL veya DIRECT_URL,
- * BOOTSTRAP_ADMIN_EMAIL ve en az 14 karakterli BOOTSTRAP_ADMIN_PASSWORD.
+ * BOOTSTRAP_ADMIN_EMAIL ve en az 8 karakterli BOOTSTRAP_ADMIN_PASSWORD.
  * Örnek işletme, müşteri, ürün, sipariş veya tahsilat verisi üretmez.
  * İşlemden sonra BOOTSTRAP_ADMIN_PASSWORD değişkenini kaldırın.
  */
@@ -18,8 +18,8 @@ if (!connectionString) throw new Error("DATABASE_URL veya DIRECT_URL gerekli.");
 if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
   throw new Error("Geçerli BOOTSTRAP_ADMIN_EMAIL gerekli.");
 }
-if (password.length < 14) {
-  throw new Error("BOOTSTRAP_ADMIN_PASSWORD en az 14 karakter olmalı.");
+if (password.length < 8) {
+  throw new Error("BOOTSTRAP_ADMIN_PASSWORD en az 8 karakter olmalı.");
 }
 
 const passwordHash = await bcrypt.hash(password, 12);
@@ -30,12 +30,13 @@ try {
   await client.query("BEGIN");
   const userId = crypto.randomUUID();
   const result = await client.query(
-    `INSERT INTO "User" (id, email, "passwordHash", name, "isPlatformAdmin", "isSuspended")
-     VALUES ($1, $2, $3, 'Platform Yöneticisi', true, false)
+    `INSERT INTO "User" (id, email, "passwordHash", name, "isPlatformAdmin", "isSuspended", "mustChangePassword")
+     VALUES ($1, $2, $3, 'Platform Yöneticisi', true, false, true)
      ON CONFLICT (email) DO UPDATE
        SET "passwordHash" = EXCLUDED."passwordHash",
            "isPlatformAdmin" = true,
-           "isSuspended" = false
+           "isSuspended" = false,
+           "mustChangePassword" = true
      RETURNING id`,
     [userId, email, passwordHash]
   );
