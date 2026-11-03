@@ -111,8 +111,8 @@ export async function loginAction(
  */
 export async function demoStartPanelSelectionAction(): Promise<void> {
   if (!DEMO_ACTIVE) redirect("/login");
-  await startDemoSession("business");
-  redirect("/panel-secimi");
+  await startDemoSession("admin");
+  redirect("/admin");
 }
 
 export async function demoSwitchRoleAction(formData: FormData): Promise<void> {
@@ -120,10 +120,10 @@ export async function demoSwitchRoleAction(formData: FormData): Promise<void> {
     redirect("/login");
   }
   const rawRole = str(formData, "role");
-  if (!isDemoRole(rawRole)) {
-    redirect("/login");
+  if (rawRole !== "admin") {
+    redirect("/login?callbackUrl=%2Fadmin");
   }
-  await startDemoSession(rawRole);
+  await startDemoSession("admin");
   redirect(demoDestination(rawRole, formData.get("callbackUrl")));
 }
 
