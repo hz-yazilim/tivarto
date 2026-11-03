@@ -53,8 +53,8 @@ async function main() {
       // CREATE ROLE/ALTER ROLE ... PASSWORD parametre kabul etmez;
       // format(%I, %L) ile tanımlayıcı ve şifreyi güvenle kaçırıyoruz.
       const { rows: createSql } = await client.query(
-        `SELECT format('CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS', $1::text) AS sql`,
-        [appUser]
+        `SELECT format('CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD %L', $1::text, $2::text) AS sql`,
+        [appUser, appPassword]
       );
       await client.query(createSql[0].sql);
       console.log(`✓ ${appUser} rolü oluşturuldu.`);
@@ -62,11 +62,9 @@ async function main() {
       console.log(`= ${appUser} rolü zaten var, yetkileri güncelleniyor.`);
     }
 
-    const { rows: alterSql } = await client.query(
-      `SELECT format('ALTER ROLE %I WITH LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD %L', $1::text, $2::text) AS sql`,
-      [appUser, appPassword]
-    );
-    await client.query(alterSql[0].sql);
+    // Supabase'in kısıtlı CREATEROLE yetkisi mevcut rollerin parolasını
+    // ALTER ROLE ile değiştirmeye izin vermeyebilir. Parola yalnızca rol
+    // ilk oluşturulurken atanır; mevcut rolün parolasına dokunulmaz.
 
     // Yetkiler (idempotent). Tanımlayıcılar format(%I) ile kaçırılır.
     const grants = [
