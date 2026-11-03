@@ -22,7 +22,7 @@ export default async function SupportAdminPage() {
           <form action={updateSupportTicketAction} className="mt-4 grid gap-2 border-t border-border pt-4 md:grid-cols-4">
             <input type="hidden" name="id" value={ticket.id} />
             <select name="status" defaultValue={ticket.status} className="h-10 rounded-lg border border-input bg-background px-3 text-sm">{Object.entries(labels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select>
-            <Input name="resolutionNote" defaultValue={ticket.resolutionNote || ""} placeholder="Çözüm / iç not" maxLength={1500} />
+            <Input name="resolutionNote" defaultValue={ticket.resolutionNote || ""} placeholder="Kullanıcıya gösterilecek çözüm notu" maxLength={1500} />
             <Input name="reason" placeholder="İşlem gerekçesi" minLength={5} maxLength={300} required />
             <SubmitButton>Talebi güncelle</SubmitButton>
           </form>
