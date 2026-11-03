@@ -9,6 +9,7 @@ import {
   comparePassword,
   createSession,
   destroySession,
+  destroyAllSessionsForUser,
   SESSION_TTL_MS,
 } from "@/lib/auth";
 import {
@@ -23,6 +24,7 @@ import {
   startDemoSession,
 } from "@/lib/demo-session.server";
 import { prisma, withPlatform } from "@/lib/db";
+import { getSession } from "@/lib/session.server";
 import { isValidEmail, str, type FormState } from "@/lib/validation";
 
 async function setSessionCookie(token: string) {
@@ -94,6 +96,7 @@ export async function loginAction(
   const token = await createSession(user.id, activeTenantId);
   await setSessionCookie(token);
 
+  if (user.mustChangePassword) redirect("/change-password");
   redirect(user.isPlatformAdmin ? "/admin" : "/panel");
 }
 
@@ -251,4 +254,28 @@ export async function logoutAction(): Promise<void> {
     // Çıkış sırasında hata olsa da kullanıcıyı girişe gönder.
   }
   redirect("/login");
+}
+
+
+/** İlk girişte geçici şifreyi yeni ve güçlü bir şifreyle değiştirme. */
+export async function changePasswordAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (!session.user.mustChangePassword) redirect(session.user.isPlatformAdmin ? "/admin" : "/panel");
+
+  const password = String(formData.get("password") ?? "");
+  const confirmation = String(formData.get("confirmation") ?? "");
+  if (password.length < 12) redirect("/change-password?error=short");
+  if (password !== confirmation) redirect("/change-password?error=mismatch");
+
+  const passwordHash = await hashPassword(password);
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { passwordHash, mustChangePassword: false },
+  });
+
+  await destroyAllSessionsForUser(session.user.id);
+  const token = await createSession(session.user.id);
+  await setSessionCookie(token);
+  redirect(session.user.isPlatformAdmin ? "/admin" : "/panel");
 }
