@@ -3,6 +3,12 @@ import { Button } from "@/components/ui/button";
 import RegisterForm from "@/app/register/register-form";
 import { DEMO_ACTIVE } from "@/lib/demo-config";
 
+// Bu sayfa demo/production ortam değişkenlerine göre farklı içerik sunar.
+// Statik HTML'e dönüştürmek eski içeriğin tarayıcı/CDN önbelleğinde kalmasına
+// yol açabildiği için her istekte sunucudan üretilir.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default function RegisterPage() {
   if (!DEMO_ACTIVE) return <RegisterForm />;
 
