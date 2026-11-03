@@ -33,7 +33,7 @@ export const RESERVED_SLUGS = new Set([
 export const SESSION_COOKIE_NAME = "tivarto_session";
 
 /** Arayüzdeki "Demo" bilgilendirmesi (güvenlikle ilgisi yok, sadece etiket). */
-export const DEMO_MODE = process.env.DEMO_MODE !== "false";
+export const DEMO_MODE = process.env.DEMO_MODE === "true";
 
 /**
  * DEMO OTURUM ÇEREZLERİ
