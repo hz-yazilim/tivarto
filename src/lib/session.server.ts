@@ -6,8 +6,6 @@ import {
   SESSION_COOKIE_NAME,
   type ValidSession,
 } from "@/lib/auth";
-import { DEMO_SESSION_COOKIE } from "@/lib/constants";
-import { DEMO_ACTIVE } from "@/lib/demo-config";
 import { prisma, withPlatform, withTenant } from "@/lib/db";
 
 export type SessionUser = ValidSession["user"];
@@ -152,22 +150,10 @@ export async function requireWritableTenantContext(): Promise<TenantContext> {
 }
 
 
-/** Sadece platform yöneticisi. Değilse panele gönderir. */
+/** Sadece veritabanında platform yöneticisi olarak işaretlenmiş hesaplar. */
 export async function requirePlatformAdmin(): Promise<ValidSession> {
   const session = await getSession();
-  if (!session) {
-    redirect("/login");
-  }
-  if (!session.user.isPlatformAdmin) {
-    // Demo veri katmanı açıkken üç panelin tamamı gezilebilsin: demo oturumu
-    // platform paneline de erişir. Gerçek modda bu istisna yoktur (RLS + rol
-    // kontrolü aynen çalışmaya devam eder).
-    const isDemoSession =
-      DEMO_ACTIVE &&
-      (await cookies()).get(DEMO_SESSION_COOKIE)?.value === "1";
-    if (!isDemoSession) {
-      redirect("/panel");
-    }
-  }
+  if (!session) redirect("/login");
+  if (!session.user.isPlatformAdmin) redirect("/panel");
   return session;
 }

@@ -29,17 +29,10 @@ panelinden (`/admin`) işletmeleri, paketleri ve ödemeleri yönetir.
 | `isPlatformAdmin = true` | `/admin` | Tüm işletmeler, planlar, ödemeler, loglar |
 | İşletme sahibi (`OWNER`) | `/panel` | Kendi işletmesinin tüm modülleri |
 | Personel (`STAFF`) | `/panel` | Kendi işletmesinin modülleri (rol ayrımı genişletilecek) |
-| Müşteri (demo) | `/musteri` | Siparişlerim + `/shop/demo` vitrininden alışveriş |
+| Müşteri | `/musteri` | Müşteri sipariş ekranı (müşteri hesabı akışı ayrıca tamamlanacak) |
 | Anonim | `/`, `/login`, `/register`, `/shop/[slug]` | Vitrinden sipariş verebilir |
 
-> **Demo hızlı giriş:** Demo katmanı açıkken (`DATABASE_URL` tanımlı değilse)
-> `/login` ekranında şifreyle giriş geçici olarak kapalıdır. Bir panel rolüne
-> tıklayarak e-posta veya şifre girmeden **Platform Yöneticisi / İşletme
-> Yetkilisi / Müşteri** olarak devam edebilirsiniz. Ana sayfadan da tek tıkla
-> panele geçiş yapılabilir. Demo modunda `/register` de doğrudan örnek işletme
-> paneline giriş sunar; veritabanı olmadığı için gerçek hesap oluşturmaz.
-> Veritabanı bağlandığında demo girişi kapanır ve normal e-posta/şifre girişi
-> otomatik olarak devreye girer.
+> **Örnek veri ve demo giriş kapalıdır.** Uygulama, örnek kullanıcı veya işletme üretmez. İlk platform yöneticisi, veritabanı hazırlandıktan sonra yalnızca sizin belirlediğiniz e-posta ve güçlü parola ile oluşturulur.
 
 ---
 
@@ -56,10 +49,10 @@ panelinden (`/admin`) işletmeleri, paketleri ve ödemeleri yönetir.
 - Sipariş yönetimi + durum takibi (iptalde stok geri eklenir)
 - Herkese açık vitrin, sepet, sipariş oluşturma, WhatsApp sipariş özeti
 - Merkez yönetim paneli (işletmeler, planlar, ödemeler, denetim kayıtları)
+- Satış raporları (30 günlük ciro, tahmini brüt kâr, 7 günlük trend, çok satan ürünler, kritik stok ve CSV dışa aktarma)
 - RLS ile işletmeler arası veri izolasyonu (fail-closed)
 - Mobil uyumlu arayüzler
-- **Veritabanı olmadan demo katmanı:** örnek verilerle üç panel de gezilebilir,
-  giriş bilgileri doğrulanmaz (yalnızca `DATABASE_URL` tanımsızken)
+- Örnek/demo veri ve doğrulanmayan giriş varsayılan olarak kapalıdır.
 
 ### 🚧 Henüz yok / sıradaki işler
 
@@ -106,12 +99,7 @@ cp .env.example .env            # değerleri doldurun
 # DATABASE_URL, DIRECT_URL, NEXT_PUBLIC_ROOT_DOMAIN
 ```
 
-**Sadece demo olarak bakmak istiyorsan veritabanı kurmana gerek yok:**
-`.env` dosyasında `DATABASE_URL` satırını yorum satırı yap (veya hiç ekleme),
-ardından `npm run dev`. Uygulama bellek içi örnek veriyle açılır; `/login`
-ekranından istediğin bilgilerle veya ana sayfadaki tek tıklık butonlarla üç
-paneline de girebilirsin. Demo sırasında eklediğin kayıtlar sunucu yeniden
-başlayınca sıfırlanır.
+Uygulama gerçek işletme verisiyle çalışacak şekilde hazırlanmıştır. Örnek işletme, ürün, müşteri veya sipariş otomatik oluşturulmaz. Veritabanı bağlantısı tamamlanana kadar veri gerektiren ekranlar çalışmaz.
 
 Gerçek veritabanıyla çalışmak için:
 
@@ -119,25 +107,16 @@ Gerçek veritabanıyla çalışmak için:
 npm run db:migrate:deploy       # migration'ları uygula (init: tüm tablolar)
 npm run db:app-role             # kısıtlı uygulama rolü (RLS için şart)
 npm run db:rls                  # RLS politikalarını uygula + doğrula
-npm run db:seed                 # demo verisi (DEMO_MODE=true ise)
+npm run db:bootstrap-admin      # yalnızca sizin belirlediğiniz platform yöneticisini oluşturur
 
 npm run dev                     # http://localhost:3000
 ```
 
-> `DATABASE_URL` tanımlandığı anda demo giriş kolaylığı otomatik kapanır ve
-> gerçek e-posta/şifre doğrulaması devreye girer. Ayrıca `DEMO_MODE=false`
-> yapmanız önerilir.
+> Demo giriş kapalıdır; `DEMO_MODE=true` yalnızca izole yerel testte kullanılmalıdır. Canlı ortamda açık bırakmayın.
 
-Seed sonrası demo hesaplar (şifre `Tiverto!2026`, `SEED_PASSWORD` ile değiştirilebilir):
+Eski örnek veriler daha önce veritabanına yazıldıysa `npm run db:clean-demo` önce yalnızca bulunacak kayıtları raporlar. Silme için ayrıca `CONFIRM_DEMO_CLEANUP=DELETE_DEMO_DATA` onayı gerekir; komut yalnızca eski `demo` slug'lı örnek işletmeyi ve eski sabit demo e-postalarını hedefler.
 
-| Hesap | E-posta | Panel |
-|---|---|---|
-| Platform yöneticisi | `admin@tiverto.dev` | `/admin` |
-| Demo işletme | `demo@tiverto.dev` | `/panel` |
-| Demo vitrin | — | `/shop/demo` |
-
-> ⚠️ **Demo hesapları canlı ortamda mutlaka silin/değiştirin.** `DEMO_MODE=false`
-> iken seed çalışmaz.
+İlk platform yöneticisi için `BOOTSTRAP_ADMIN_EMAIL` ve `BOOTSTRAP_ADMIN_PASSWORD` değerlerini ortam değişkeni olarak tanımlayıp `npm run db:bootstrap-admin` çalıştırın. Parola en az 14 karakter olmalı; işlemden sonra `BOOTSTRAP_ADMIN_PASSWORD` değişkenini kaldırın. Bu işlem örnek işletme veya ürün oluşturmaz.
 
 ---
 
@@ -148,14 +127,12 @@ Seed sonrası demo hesaplar (şifre `Tiverto!2026`, `SEED_PASSWORD` ile değişt
 | `DATABASE_URL` | ✅ | Uygulamanın kullandığı bağlantı. **Superuser olmayan** kullanıcı (RLS için şart) |
 | `DIRECT_URL` | ✅ | Migration/RLS için doğrudan bağlantı (yönetici kullanıcı) |
 | `NEXT_PUBLIC_ROOT_DOMAIN` | ➖ | Vitrin subdomain kökü (`tiverto.app`). Boşsa subdomain yönlendirme kapalıdır; vitrin `/shop/[slug]` üzerinden çalışır |
-| `DEMO_MODE` | ➖ | `false` değilse arayüzlerde "Demo" bilgilendirmesi görünür |
-| `DEMO_FAKE_DATA` | ➖ | `true` ise `DATABASE_URL` tanımlı olsa bile bellek içi demo verisi kullanılır. **Canlı ortamda asla açmayın** |
-| `SEED_PASSWORD` | ➖ | Demo hesapların şifresi |
+| `DEMO_MODE` | ➖ | Yalnızca `true` olduğunda demo modu açılır; varsayılan kapalıdır |
+| `BOOTSTRAP_ADMIN_EMAIL` | ➖ | İlk platform yöneticisinin e-posta adresi |
+| `BOOTSTRAP_ADMIN_PASSWORD` | ➖ | İlk platform yöneticisi için tek seferlik, en az 14 karakterli parola |
 
-**Demo katmanının açık olma koşulu:** `DEMO_MODE !== "false"` **VE**
-(`DATABASE_URL` tanımlı değil **VEYA** `DEMO_FAKE_DATA === "true"`).
-Yani veritabanı bağlandığında "her şifreyi kabul et" davranışı kendiliğinden
-kapanır; ek bir kod değişikliği gerekmez.
+
+**Demo katmanı varsayılan olarak kapalıdır.** `DEMO_MODE=true` yalnızca izole yerel test ortamında kullanılmalıdır. Canlı ortamda demo modu açılmamalıdır.
 
 Hassas değerler **asla** kaynak koduna yazılmaz; yalnızca ortam değişkeni olarak tutulur.
 
@@ -172,9 +149,10 @@ Hassas değerler **asla** kaynak koduna yazılmaz; yalnızca ortam değişkeni o
 | `npm run lint` | ESLint |
 | `npm run db:migrate:deploy` | `scripts/migrate.mjs` — bekleyen migration'ları uygular (idempotent) |
 | `npm run db:rls` | `prisma/rls.sql` politikalarını uygular **ve doğrular** |
-| `npm run db:seed` | Demo verisi (`DEMO_MODE=false` ise atlanır) |
+| `npm run db:bootstrap-admin` | Yalnızca ortam değişkenlerinde belirtilen platform yöneticisini oluşturur/günceller; örnek veri üretmez |
+| `npm run db:clean-demo` | Eski sabit demo kayıtlarını önce dry-run gösterir; silmek için açık onay gerekir |
 | `npm run db:app-role` | RLS'i **etkin** kılan kısıtlı uygulama rolünü oluşturur |
-| `npm run db:setup` | migration + RLS + seed (tek seferde) |
+| `npm run db:setup` | migration + RLS kurulumu |
 | `npm run db:migrate` | `prisma migrate dev` (yalnızca yerel geliştirme) |
 
 Migration'lar `scripts/migrate.mjs` ile uygulanır. Bu runner `pg` sürücüsünü kullanır
@@ -210,7 +188,7 @@ npm run db:app-role
 # Çıktıdaki DATABASE_URL'i servisin Environment sekmesine yazın ve redeploy edin.
 
 npm run db:rls     # politikaları uygula + doğrula (DIRECT_URL ile)
-npm run db:seed    # demo verisi istiyorsan (DEMO_MODE=false ise atlanır)
+npm run db:bootstrap-admin # örnek veri üretmeden platform yöneticisini hazırlar
 ```
 
    `npm run db:rls` sonunda "superuser olan giriş yapabilen roller" uyarısı
@@ -235,14 +213,14 @@ prisma/
 scripts/
   migrate.mjs              # migration runner (Render)
   apply-rls.mjs            # RLS uygulayıcı
-  seed.mjs                 # demo verisi (RLS bağlamı içinde)
+  bootstrap-admin.mjs      # tek seferlik platform yöneticisi oluşturma
   create-app-role.mjs      # kısıtlı (RLS'etkin) uygulama rolü
 src/
   app/
     (public)               # /, /login, /register, /hesap-yok, /shop/[slug]
     panel/                 # işletme yönetim paneli (korumalı)
     admin/                 # merkez yönetim paneli (yalnızca platform admin)
-    musteri/               # müşteri "Siparişlerim" paneli (demo)
+    musteri/               # müşteri "Siparişlerim" paneli
     api/health, api/upload # sağlık kontrolü + görsel yükleme
   actions/                 # server action'lar (mutasyonlar)
   components/              # arayüz bileşenleri
@@ -319,42 +297,9 @@ src/
 
 ---
 
-## 9. Demo modu
+## 9. Demo ve örnek veri politikası
 
-İki ayrı kavram vardır:
-
-| | `DEMO_MODE` | Demo veri katmanı (`DEMO_ACTIVE`) |
-|---|---|---|
-| Ne yapar? | Panel/admin/vitrinde "Demo" uyarı şeridi gösterir | Veritabanı yerine bellek içi örnek veri kullanır, giriş bilgilerini doğrulamaz |
-| Ne zaman açık? | `DEMO_MODE !== "false"` (varsayılan açık) | `DEMO_MODE` açık **ve** (`DATABASE_URL` yok veya `DEMO_FAKE_DATA=true`) |
-| Canlı ortam | Etiket olarak kalabilir | **Kapalı olmalı** — `DATABASE_URL` tanımlı olduğu için otomatik kapanır |
-
-### Demo veri katmanı (veritabanı bağlantısı yapılana kadar)
-
-- `src/lib/demo-data.ts` uydurulmuş işletmeler, ürünler, siparişler, müşteriler
-  vb. içerir; `src/lib/demo-client.ts` Prisma'nın bu projede kullanılan sorgu
-  alt kümesini (where/orderBy/include/select/aggregate/groupBy/create/update/
-  delete/transaction) taklit eder. `src/lib/db.ts` demo aktifken gerçek istemci
-  yerine bunu kullanır; sayfa ve action kodları **değişmez**.
-- `withTenant()` / `withPlatform()` içindeki RLS bağlamı `AsyncLocalStorage`
-  ile taklit edilir; işletme verisi yine yalnızca kendi tenant'ına görünür.
-- Giriş: `/login` ekranında e-posta + şifre **doğrulanmaz**, seçilen rol için
-  örnek hesapla oturum açılır. Üç rol ve hedefleri:
-  `admin → /admin`, `business → /panel`, `customer → /musteri` + `/shop/demo`.
-  Ana sayfadaki butonlar veya panellerin üstündeki "Demo" şeridi ile rol
-  değiştirmek için çıkış yapmaya gerek yoktur.
-- Normal müşteri deneyimi: `/shop/demo` herkese açık vitrin (ürün seç, sipariş
-  ver), `/musteri` ise "Siparişlerim" panelidir. Vitrinden verilen sipariş
-  demo sırasında işletme panelindeki `/panel/orders` ekranına düşer.
-- Demo sırasında yapılan ekleme/silme işlemleri aynı sunucu sürecinde görünür;
-  süreç yeniden başlayınca başlangıç verisine döner. **Hiçbir kayıt gerçek
-  veritabanına yazılmaz.**
-- `/api/health` demo katmanı açıkken `mode: "demo"` ve
-  `database: "demo-fake-data"` döner (gerçek DB kontrolü yapılmaz).
-
-> ⚠️ **Gerçek müşteri/işletme bilgisi girilmemeli, gerçek ödeme alınmamalıdır.**
-> Veritabanı bağlantısı kurulduğunda `DEMO_MODE=false` yapın; demo giriş
-> kolaylığı `DATABASE_URL` varlığında zaten otomatik olarak devre dışı kalır.
+Demo modu varsayılan olarak kapalıdır (`DEMO_MODE=false`). Canlı ortamda demo modu açılmamalıdır. İlk kurulumda örnek işletme, ürün, müşteri, sipariş veya tahsilat oluşturulmaz. Platform yöneticisi yalnızca `BOOTSTRAP_ADMIN_EMAIL` ve `BOOTSTRAP_ADMIN_PASSWORD` ile açıkça tanımlanmış hesap üzerinden hazırlanır.
 
 ---
 
@@ -376,7 +321,7 @@ src/
 | Admin panelde liste boş | RLS fail-closed: platform sorguları `withPlatform()` kullanmalı |
 | Görseller deploy sonrası kayboluyor | Render diski geçici; kalıcı depolama henüz yok |
 | `prisma generate` motor indiremiyor | `scripts/prisma-generate.mjs` (postinstall/build) indirmeyi atlar; `npm run build` ile tekrar deneyin |
-| Demo girişi açık kaldı / paneller boş | `DATABASE_URL` tanımlı mı? Demo veri katmanı yalnızca DB yokken açılır. `DEMO_FAKE_DATA=true` ile zorlayabilirsiniz (canlıda asla) |
+| Paneller veri göstermiyor | Veritabanı bağlantısı ve migration durumunu kontrol edin; örnek veri otomatik oluşturulmaz |
 | Giriş yaptım ama /panel "İşletme hesabı bulunamadı" diyor | Müşteri rolüyle girilmiş; üstteki Demo şeridinden "İşletme Yetkilisi"ni seçin |
 | Panelde "İşletme bulunamadı" | `Session.activeTenantId` boş; çıkış yapıp yeniden giriş yapın |
 | Admin panelde liste boş / RLS etkisiz | `npm run db:rls` çıktısındaki superuser uyarısına bakın, `db:app-role` ile kısıtlı role geçin |
