@@ -1,14 +1,23 @@
 /**
  * Render/Node başlangıcı.
- * İzole demo önizlemesinde PostgreSQL bağlantısı ve migration zorunlu değildir.
- * Gerçek modda migration + RLS adımları başarısızsa uygulama başlamaz.
+ * Veritabanı tanımlı değilse geliştirme önizlemesini otomatik açar.
+ * Veritabanı varsa yalnızca açıkça istenen demo modunda sahte veri kullanılır;
+ * aksi durumda migration + RLS adımları zorunludur.
  */
 import { spawnSync } from "node:child_process";
 
-const demoMode = process.env.DEMO_MODE === "true";
-const forceFakeData = process.env.DEMO_FAKE_DATA === "true";
 const hasDatabase = Boolean(process.env.DATABASE_URL);
-const databaseOptional = demoMode && (forceFakeData || !hasDatabase);
+const requestedDemo = process.env.DEMO_MODE === "true";
+const forceFakeData = process.env.DEMO_FAKE_DATA === "true";
+
+// Render Dashboard'da Blueprint env değerleri uygulanmamış olsa bile,
+// DATABASE_URL yoksa geliştirme ortamı DB hatasıyla kapanmasın.
+const databaseOptional = !hasDatabase || (requestedDemo && forceFakeData);
+
+if (!hasDatabase || databaseOptional) {
+  process.env.DEMO_MODE = "true";
+  process.env.DEMO_FAKE_DATA = "true";
+}
 
 function run(command, args) {
   const result = spawnSync(command, args, {
@@ -23,12 +32,10 @@ function run(command, args) {
 }
 
 if (databaseOptional) {
-  console.log("Tivarto geliştirme önizlemesi: veritabanı migration/RLS adımları atlandı.");
+  console.log(
+    "Tivarto geliştirme önizlemesi: DEMO_MODE etkin; veritabanı migration/RLS adımları atlandı."
+  );
 } else {
-  if (!hasDatabase) {
-    console.error("HATA: Gerçek modda DATABASE_URL zorunludur.");
-    process.exit(1);
-  }
   run("npm", ["run", "db:migrate:deploy"]);
   run("npm", ["run", "db:rls"]);
 }
