@@ -156,20 +156,18 @@ export async function deleteProductAction(formData: FormData): Promise<void> {
   if (!id) return;
 
   await withTenant(tenant.id, async (tx) => {
-    // Sipariş/mal kabul kaydı olan ürünü silmek yerine pasifleştir.
-    const used = await tx.orderItem.count({ where: { productId: id } });
-    if (used > 0) {
+    // Geçmiş sipariş, mal kabul veya stok hareketi varsa kayıtları koru.
+    const [orderUsage, receiptUsage, movementUsage] = await Promise.all([
+      tx.orderItem.count({ where: { productId: id, tenantId: tenant.id } }),
+      tx.goodsReceiptItem.count({ where: { productId: id, tenantId: tenant.id } }),
+      tx.stockMovement.count({ where: { productId: id, tenantId: tenant.id } }),
+    ]);
+    if (orderUsage > 0 || receiptUsage > 0 || movementUsage > 0) {
       await tx.product.updateMany({
         where: { id, tenantId: tenant.id },
         data: { isActive: false },
       });
     } else {
-      await tx.goodsReceiptItem.deleteMany({
-        where: { productId: id, tenantId: tenant.id },
-      });
-      await tx.stockMovement.deleteMany({
-        where: { productId: id, tenantId: tenant.id },
-      });
       await tx.product.deleteMany({ where: { id, tenantId: tenant.id } });
     }
   });
