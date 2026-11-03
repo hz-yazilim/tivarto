@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/prisma-generate.mjs && next build",
-    "start": "next start",
+    "start": "node scripts/start.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
     "postinstall": "node scripts/prisma-generate.mjs",
