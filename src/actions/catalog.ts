@@ -182,18 +182,26 @@ export async function updateProductAction(
 }
 
 export async function deleteProductAction(formData: FormData): Promise<void> {
-  const { tenant } = await requireWritableTenantContext();
+  const { tenant, user } = await requireWritableTenantContext();
   const id = str(formData, "id");
   if (!id) return;
 
   await withTenant(tenant.id, async (tx) => {
+    const product = await tx.product.findFirst({
+      where: { id, tenantId: tenant.id },
+      select: { id: true, name: true, isActive: true },
+    });
+    if (!product) return;
+
     // Geçmiş sipariş, mal kabul veya stok hareketi varsa kayıtları koru.
     const [orderUsage, receiptUsage, movementUsage] = await Promise.all([
       tx.orderItem.count({ where: { productId: id, tenantId: tenant.id } }),
       tx.goodsReceiptItem.count({ where: { productId: id, tenantId: tenant.id } }),
       tx.stockMovement.count({ where: { productId: id, tenantId: tenant.id } }),
     ]);
-    if (orderUsage > 0 || receiptUsage > 0 || movementUsage > 0) {
+    const hasHistory = orderUsage > 0 || receiptUsage > 0 || movementUsage > 0;
+
+    if (hasHistory) {
       await tx.product.updateMany({
         where: { id, tenantId: tenant.id },
         data: { isActive: false },
@@ -201,25 +209,52 @@ export async function deleteProductAction(formData: FormData): Promise<void> {
     } else {
       await tx.product.deleteMany({ where: { id, tenantId: tenant.id } });
     }
+
+    await tx.auditLog.create({
+      data: {
+        tenantId: tenant.id,
+        userId: user.id,
+        action: hasHistory ? "product.deactivated" : "product.deleted",
+        entity: "Product",
+        entityId: id,
+        details: hasHistory
+          ? "Geçmiş kayıtlar nedeniyle ürün pasife alındı."
+          : "Geçmiş kaydı olmayan ürün silindi.",
+      },
+    });
   });
 
   revalidatePath("/panel/products");
+  revalidatePath("/panel");
+  revalidatePath(`/shop/${tenant.slug}`);
 }
 
 export async function toggleProductAction(formData: FormData): Promise<void> {
-  const { tenant } = await requireWritableTenantContext();
+  const { tenant, user } = await requireWritableTenantContext();
   const id = str(formData, "id");
   const active = str(formData, "isActive") === "true";
   if (!id) return;
 
   await withTenant(tenant.id, async (tx) => {
-    await tx.product.updateMany({
+    const updated = await tx.product.updateMany({
       where: { id, tenantId: tenant.id },
       data: { isActive: active },
     });
+    if (updated.count === 1) {
+      await tx.auditLog.create({
+        data: {
+          tenantId: tenant.id,
+          userId: user.id,
+          action: active ? "product.activated" : "product.deactivated",
+          entity: "Product",
+          entityId: id,
+        },
+      });
+    }
   });
 
   revalidatePath("/panel/products");
+  revalidatePath(`/shop/${tenant.slug}`);
 }
 
 // ---------- Kategoriler ----------
@@ -243,18 +278,36 @@ export async function createCategoryAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteCategoryAction(formData: FormData): Promise<void> {
-  const { tenant } = await requireWritableTenantContext();
+  const { tenant, user } = await requireWritableTenantContext();
   const id = str(formData, "id");
   if (!id) return;
 
   await withTenant(tenant.id, async (tx) => {
+    const category = await tx.category.findFirst({
+      where: { id, tenantId: tenant.id },
+      select: { id: true, name: true },
+    });
+    if (!category) return;
+
     // Kategoriye bağlı ürünlerin kategorisini boşalt, sonra kategoriyi sil.
     await tx.product.updateMany({
       where: { categoryId: id, tenantId: tenant.id },
       data: { categoryId: null },
     });
     await tx.category.deleteMany({ where: { id, tenantId: tenant.id } });
+    await tx.auditLog.create({
+      data: {
+        tenantId: tenant.id,
+        userId: user.id,
+        action: "category.deleted",
+        entity: "Category",
+        entityId: id,
+        details: `Kategori silindi: ${category.name}`,
+      },
+    });
   });
 
   revalidatePath("/panel/categories");
+  revalidatePath("/panel/products");
+  revalidatePath(`/shop/${tenant.slug}`);
 }
