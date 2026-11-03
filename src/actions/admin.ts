@@ -120,7 +120,8 @@ export async function updateTenantPlan(formData: FormData): Promise<void> {
   await requirePlatformAdmin();
   const id = str(formData, "id");
   const planId = str(formData, "planId");
-  if (!id || !planId) return;
+  const reason = str(formData, "reason").slice(0, 300);
+  if (!id || !planId || reason.length < 5) return;
 
   const plan = await prisma.plan.findUnique({ where: { id: planId } });
   const tenant = await prisma.tenant.findUnique({ where: { id }, select: { planId: true } });
@@ -128,7 +129,7 @@ export async function updateTenantPlan(formData: FormData): Promise<void> {
 
   await prisma.tenant.update({ where: { id }, data: { planId } });
   const admin = await requirePlatformAdmin();
-  await prisma.platformAuditLog.create({ data: { actorId: admin.user.id, action: "tenant.plan.changed", targetType: "Tenant", targetId: id, reason: "İşletme planı güncellendi", beforeData: { planId: tenant.planId }, afterData: { planId } } });
+  await prisma.platformAuditLog.create({ data: { actorId: admin.user.id, action: "tenant.plan.changed", targetType: "Tenant", targetId: id, reason, beforeData: { planId: tenant.planId }, afterData: { planId } } });
   revalidatePath("/admin/tenants");
 }
 
@@ -242,6 +243,7 @@ export async function createFeatureFlagAction(formData: FormData): Promise<void>
   const description = str(formData, "description").slice(0, 300);
   const category = str(formData, "category").slice(0, 40) || "product";
   if (!/^[a-z][a-z0-9_]{2,59}$/.test(key) || name.length < 2 || description.length < 5) return;
+  if (await prisma.featureFlag.findUnique({ where: { key } })) return;
 
   const flag = await prisma.featureFlag.create({
     data: { key, name, description, category, enabled: false, updatedBy: admin.user.id },
