@@ -106,6 +106,12 @@ export async function loginAction(
  * Demo panelleri arasında tek tıkla geçiş (ör. işletme panelindeyken admin
  * paneline geçmek için). Sadece `DEMO_ACTIVE` iken çalışır.
  */
+export async function demoStartPanelSelectionAction(): Promise<void> {
+  if (!DEMO_ACTIVE) redirect("/login");
+  await startDemoSession("business");
+  redirect("/panel-secimi");
+}
+
 export async function demoSwitchRoleAction(formData: FormData): Promise<void> {
   if (!DEMO_ACTIVE) {
     redirect("/login");
@@ -230,7 +236,7 @@ export async function registerAction(
     await markDemoSession("business", email);
   }
 
-  redirect("/panel");
+  redirect("/panel-secimi");
 }
 
 /** Oturumu kapatır ve giriş sayfasına yönlendirir. */
