@@ -20,7 +20,27 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createClient() {
-  const connectionString = process.env.DATABASE_URL;
+  const configuredUrl = process.env.DATABASE_URL ?? "";
+  const appPassword = process.env.APP_DB_PASSWORD;
+  const appUser = process.env.APP_DB_USER || "tivarto_app";
+  let connectionString = configuredUrl;
+
+  // Supabase pooler kullanıcı adını "rol.proje-ref" biçiminde sunabilir.
+  // Host/port/suffix korunur; uygulama her durumda kısıtlı app rolüyle bağlanır.
+  if (configuredUrl && appPassword) {
+    try {
+      const parsed = new URL(configuredUrl);
+      const runtimeUsername = decodeURIComponent(parsed.username);
+      const suffixIndex = runtimeUsername.indexOf(".");
+      const projectSuffix = suffixIndex >= 0 ? runtimeUsername.slice(suffixIndex) : "";
+      parsed.username = `${appUser}${projectSuffix}`;
+      parsed.password = appPassword;
+      connectionString = parsed.toString();
+    } catch {
+      console.error("DATABASE_URL geçerli bir PostgreSQL bağlantı adresi değil.");
+    }
+  }
+
   if (!connectionString) {
     // Uygulama açılışta patlamasın: hata yalnızca sorgu anında ortaya çıksın.
     // (/api/health bu durumda 503 döner.)
