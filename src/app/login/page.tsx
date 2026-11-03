@@ -13,6 +13,7 @@ export default async function LoginPage({
 }) {
   const { callbackUrl: rawCallback } = await searchParams;
   const callbackUrl = safeCallbackUrl(rawCallback) ?? "";
+  const isAdminLogin = callbackUrl === "/admin" || callbackUrl.startsWith("/admin/");
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10 sm:px-6">
@@ -37,15 +38,15 @@ export default async function LoginPage({
             <div>
               <div className="mb-5 rounded-xl border border-amber-400/20 bg-amber-400/[0.08] p-4 text-sm leading-6 text-amber-100/90">
                 <strong className="block text-amber-100">Demo modu aktif</strong>
-                Şifreyle giriş geçici olarak kapalı. Devam etmek için aşağıdan bir demo paneli seçebilirsin.
+                Şu anda yalnızca platform yöneticisi girişi açıktır.
               </div>
-              <DemoRoleSwitcher callbackUrl={callbackUrl} />
+              <DemoRoleSwitcher callbackUrl="/admin" adminOnly />
             </div>
           ) : (
             <LoginForm
               demoActive={false}
               callbackUrl={callbackUrl}
-              defaultRole="business"
+              defaultRole={isAdminLogin ? "admin" : "business"}
             />
           )}
         </section>
