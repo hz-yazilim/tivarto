@@ -27,7 +27,7 @@ export default async function AdminLayout({
           </header>
           <main className="flex-1 overflow-y-auto p-4 md:p-6">
             <div className="mb-4">
-              <DemoRoleSwitcher compact />
+              <DemoRoleSwitcher compact includeAdmin />
             </div>
             <DemoBanner />
             {children}
