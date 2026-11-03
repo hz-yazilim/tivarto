@@ -24,6 +24,7 @@ export async function requireSession(): Promise<ValidSession> {
   if (!session) {
     throw new Error("Giriş yapmalısınız.");
   }
+  if (session.user.mustChangePassword) redirect("/change-password");
   return session;
 }
 
@@ -47,6 +48,7 @@ export async function getTenantContext(): Promise<TenantContext> {
   if (!session) {
     throw new Error("Giriş yapmalısınız.");
   }
+  if (session.user.mustChangePassword) redirect("/change-password");
   return resolveTenantContext(session);
 }
 
@@ -126,6 +128,7 @@ export async function requireTenantContext(): Promise<TenantContext> {
   if (!session) {
     redirect("/login");
   }
+  if (session.user.mustChangePassword) redirect("/change-password");
   try {
     return await resolveTenantContext(session);
   } catch {
@@ -154,6 +157,7 @@ export async function requireWritableTenantContext(): Promise<TenantContext> {
 export async function requirePlatformAdmin(): Promise<ValidSession> {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (session.user.mustChangePassword) redirect("/change-password");
   if (!session.user.isPlatformAdmin) redirect("/login?callbackUrl=%2Fadmin");
   return session;
 }

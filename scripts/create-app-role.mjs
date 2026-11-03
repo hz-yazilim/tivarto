@@ -96,19 +96,9 @@ async function main() {
 
     console.log(`✓ ${appUser} için yetkiler verildi (RLS etkin).`);
 
-    // Uygulamanın kullanacağı bağlantı adresi.
-    // (Unix socket / özel port biçimlerini bozmamak için metin üzerinden kurulur.)
-    const withoutScheme = adminUrl.replace(/^postgres(ql)?:\/\//, "");
-    const atIndex = withoutScheme.lastIndexOf("@");
-    const authority = atIndex >= 0 ? withoutScheme.slice(atIndex + 1) : withoutScheme;
-    const slashIndex = authority.indexOf("/");
-    const hostPart = slashIndex >= 0 ? authority.slice(0, slashIndex) : authority;
-    const dbPart = slashIndex >= 0 ? authority.slice(slashIndex) : "";
-    const appUrl = `postgresql://${appUser}:${encodeURIComponent(appPassword)}@${hostPart}${dbPart}`;
+    // Parolalı bağlantı adresini build loglarına yazdırma.
+    console.log(`✓ ${appUser} rolü doğrulandı. Uygulama bağlantısı Vercel'de ayrı bir gizli değişken olarak tanımlanmalıdır.`);
 
-    console.log("");
-    console.log("Uygulama için kullanılacak DATABASE_URL:");
-    console.log(`  ${appUrl}`);
   } finally {
     await client.end();
   }

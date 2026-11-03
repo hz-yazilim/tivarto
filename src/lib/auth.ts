@@ -57,6 +57,7 @@ export interface ValidSession {
     email: string;
     name: string | null;
     isPlatformAdmin: boolean;
+    mustChangePassword: boolean;
   };
 }
 
@@ -86,6 +87,7 @@ export async function validateSession(
       email: session.user.email,
       name: session.user.name,
       isPlatformAdmin: session.user.isPlatformAdmin,
+      mustChangePassword: session.user.mustChangePassword,
     },
   };
 }
