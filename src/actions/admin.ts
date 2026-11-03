@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import type { TenantStatus, SupportTicketStatus } from "@prisma/client";
 import { prisma, withPlatform, withTenant } from "@/lib/db";
 import { requirePlatformAdmin, requireTenantContext, requireWritableTenantContext } from "@/lib/session.server";
