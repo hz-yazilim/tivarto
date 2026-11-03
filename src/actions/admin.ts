@@ -42,6 +42,32 @@ export async function adminDashboardStats() {
   };
 }
 
+/** Platform kullanıcı dizini; yalnızca görüntüleme işlemi yapar. */
+export async function listPlatformUsers(search = "") {
+  await requirePlatformAdmin();
+  const query = search.trim().slice(0, 80);
+  return prisma.user.findMany({
+    where: query ? {
+      OR: [
+        { name: { contains: query, mode: "insensitive" } },
+        { email: { contains: query, mode: "insensitive" } },
+      ],
+    } : undefined,
+    orderBy: { createdAt: "desc" },
+    take: 200,
+    select: {
+      id: true, name: true, email: true, isPlatformAdmin: true, createdAt: true,
+      memberships: {
+        select: {
+          role: true,
+          tenant: { select: { id: true, name: true, slug: true, status: true } },
+        },
+      },
+      _count: { select: { sessions: true } },
+    },
+  });
+}
+
 export async function listTenants() {
   await requirePlatformAdmin();
   return prisma.tenant.findMany({
