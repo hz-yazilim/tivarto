@@ -10,7 +10,7 @@ export default async function ReportsPage() {
   const { tenant } = await requireTenantContext();
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const data = await withTenant(tenant.id, async (tx) => {
-    const [orders, products] = await Promise.all([
+    const [orders, products, receipts] = await Promise.all([
       tx.order.findMany({
         where: { createdAt: { gte: since }, status: { not: "CANCELLED" } },
         orderBy: { createdAt: "desc" },
@@ -21,8 +21,14 @@ export default async function ReportsPage() {
         orderBy: { stock: "asc" },
         select: { id: true, name: true, stock: true, minStock: true, buyPrice: true, sellPrice: true },
       }),
+      tx.goodsReceipt.findMany({
+        where: { tenantId: tenant.id, supplierId: { not: null } },
+        orderBy: { createdAt: "desc" },
+        take: 200,
+        include: { supplier: true, items: { select: { productId: true } } },
+      }),
     ]);
-    return { orders, products };
+    return { orders, products, receipts };
   });
 
   const revenue = data.orders.reduce((sum, order) => sum + Number(order.total), 0);
@@ -32,6 +38,15 @@ export default async function ReportsPage() {
   }, 0), 0);
   const stockValue = data.products.reduce((sum, product) => sum + Number(product.buyPrice ?? 0) * product.stock, 0);
   const lowStock = data.products.filter((product) => product.stock <= product.minStock);
+  const supplierByProduct = new Map<string, { name: string; phone: string | null }>();
+  for (const receipt of data.receipts) {
+    if (!receipt.supplier) continue;
+    for (const item of receipt.items) {
+      if (!supplierByProduct.has(item.productId)) {
+        supplierByProduct.set(item.productId, { name: receipt.supplier.name, phone: receipt.supplier.phone });
+      }
+    }
+  }
   const topProducts = new Map<string, { name: string; quantity: number; revenue: number }>();
   for (const order of data.orders) for (const item of order.items) {
     const current = topProducts.get(item.productId) ?? { name: item.name, quantity: 0, revenue: 0 };
@@ -67,7 +82,7 @@ export default async function ReportsPage() {
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { label: "30 günlük satış", value: money(revenue) },
-          { label: "Tamamlanmamış/aktif sipariş dahil", value: String(data.orders.length) },
+          { label: "Sipariş adedi", value: String(data.orders.length) },
           { label: "Tahmini brüt kâr", value: money(grossProfit) },
           { label: "Mevcut stok maliyeti", value: money(stockValue) },
         ].map((item) => <article key={item.label} className="rounded-xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">{item.label}</p><p className="mt-2 text-xl font-bold">{item.value}</p></article>)}
@@ -91,7 +106,14 @@ export default async function ReportsPage() {
 
       <section className="rounded-xl border border-border bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold">Yeniden sipariş önerileri</h2><p className="mt-1 text-xs text-muted-foreground">Stok miktarı minimum seviyeye eşit veya altında olan ürünler.</p></div><Link href="/panel/stock" className="text-sm text-primary hover:underline">Stok yönetimine git</Link></div>
-        <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[440px] text-sm"><thead><tr className="border-b text-left text-muted-foreground"><th className="py-2">Ürün</th><th className="py-2 text-right">Mevcut</th><th className="py-2 text-right">Minimum</th><th className="py-2 text-right">Önerilen alım</th></tr></thead><tbody>{lowStock.length ? lowStock.map((product) => <tr key={product.id} className="border-b border-border last:border-0"><td className="py-3 font-medium">{product.name}</td><td className="py-3 text-right text-red-400">{product.stock}</td><td className="py-3 text-right">{product.minStock}</td><td className="py-3 text-right font-semibold">{Math.max(0, product.minStock * 2 - product.stock)}</td></tr>) : <tr><td colSpan={4} className="py-5 text-center text-muted-foreground">Kritik stokta ürün bulunmuyor.</td></tr>}</tbody></table></div>
+        <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[440px] text-sm"><thead><tr className="border-b text-left text-muted-foreground"><th className="py-2">Ürün</th><th className="py-2 text-right">Mevcut</th><th className="py-2 text-right">Minimum</th><th className="py-2 text-right">Önerilen alım</th><th className="py-2">Son tedarikçi</th><th className="py-2">İşlem</th></tr></thead><tbody>{lowStock.length ? lowStock.map((product) => {
+          const supplier = supplierByProduct.get(product.id);
+          const suggested = Math.max(0, product.minStock * 2 - product.stock);
+          const digits = (supplier?.phone ?? "").replace(/\\D/g, "");
+          const whatsapp = digits ? (digits.startsWith("0") ? "90" + digits.slice(1) : digits.length === 10 ? "90" + digits : digits) : "";
+          const message = encodeURIComponent("Merhaba, " + product.name + " ürünü için stok " + product.stock + ", minimum seviye " + product.minStock + ". " + suggested + " adet için fiyat ve teslimat bilgisi paylaşabilir misiniz?");
+          return <tr key={product.id} className="border-b border-border last:border-0"><td className="py-3 font-medium">{product.name}</td><td className="py-3 text-right text-red-400">{product.stock}</td><td className="py-3 text-right">{product.minStock}</td><td className="py-3 text-right font-semibold">{suggested}</td><td className="py-3">{supplier?.name ?? "Tedarikçi eşleşmedi"}</td><td className="py-3">{whatsapp ? <a className="text-primary hover:underline" href={"https://wa.me/" + whatsapp + "?text=" + message} target="_blank" rel="noreferrer">WhatsApp talebi</a> : <Link className="text-primary hover:underline" href="/panel/suppliers">Tedarikçi ekle</Link>}</td></tr>;
+        }) : <tr><td colSpan={6} className="py-5 text-center text-muted-foreground">Kritik stokta ürün bulunmuyor.</td></tr>}</tbody></table></div>
       </section>
     </div>
   );
