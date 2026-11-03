@@ -16,5 +16,6 @@ import { DEMO_MODE } from "@/lib/constants";
  * `DATABASE_URL` değerini bundle'a sokmasın diye ayrı tutuldu.
  */
 export const DEMO_ACTIVE =
+  process.env.NODE_ENV !== "production" &&
   DEMO_MODE &&
   (process.env.DEMO_FAKE_DATA === "true" || !process.env.DATABASE_URL);
