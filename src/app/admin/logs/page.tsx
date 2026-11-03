@@ -19,7 +19,7 @@ export default async function LogsPage({ searchParams }: { searchParams: Promise
       <section className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="border-b border-border p-4"><h2 className="font-semibold">İşletme etkinlikleri</h2><p className="text-xs text-muted-foreground">Son 100 kayıt · İşletme bazlı</p></div>
         <div className="divide-y divide-border">
-          {tenantLogs.map((l: any) => <article key={l.id} className="p-4"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm font-medium">{l.action}</span><time className="text-xs text-muted-foreground">{new Date(l.createdAt).toLocaleString("tr-TR")}</time></div><p className="mt-1 text-xs text-muted-foreground">{l.entity} {l.entityId || ""} · {l.tenant?.name || "platform"} · Kullanıcı: {l.userId || "-"}</p></article>)}
+          {tenantLogs.map((l: any) => <article key={l.id} className="p-4"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm font-medium">{l.action}</span><time className="text-xs text-muted-foreground">{new Date(l.createdAt).toLocaleString("tr-TR")}</time></div><p className="mt-1 text-xs text-muted-foreground">{l.entity} {l.entityId || ""} · {l.tenant?.name || "platform"} · Kullanıcı: {l.userId || "-"}</p>{l.details && <p className="mt-1 text-xs text-muted-foreground">Açıklama: {l.details}</p>}</article>)}
           {tenantLogs.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Henüz işletme kaydı yok.</p>}
         </div>
       </section>
