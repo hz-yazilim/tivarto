@@ -428,7 +428,7 @@ function defaultsFor(model: string): Row {
     case "orderItem":
       return {};
     case "auditLog":
-      return { ...base, userId: null, entityId: null };
+      return { ...base, userId: null, entityId: null, details: null };
     case "payment":
       return { ...base, status: "PENDING", description: null, paidAt: null };
     case "featureFlag":
