@@ -9,6 +9,9 @@ export default async function AdminDashboard() {
   const stats = await adminDashboardStats();
 
   const shortcuts = [
+    { href: "/admin/features", title: "Özellik kontrolü", description: "Feature flag kayıtlarını ve kontrollü yayınları yönet", icon: Layers3 },
+    { href: "/admin/support", title: "Destek merkezi", description: "İşletmelerin destek taleplerini takip et ve yanıtla", icon: ScrollText },
+    { href: "/admin/health", title: "Sistem durumu", description: "Veritabanı ve servis yapılandırmalarını kontrol et", icon: Activity },
     { href: "/admin/tenants", title: "İşletmeler", description: "Hesapları, durumları ve plan atamalarını yönet", icon: Building2 },
     { href: "/admin/users", title: "Kullanıcılar", description: "Kayıtlı hesapları ve işletme bağlantılarını görüntüle", icon: Users },
     { href: "/admin/plans", title: "Abonelik planları", description: "Paket limitlerini ve aylık fiyatları düzenle", icon: Layers3 },
@@ -22,7 +25,7 @@ export default async function AdminDashboard() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[.18em] text-purple-300">TİVARTO / MERKEZ YÖNETİM</p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Genel Bakış</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Platformdaki işletmeleri, kullanıcıları ve tahsilat kayıtlarını tek noktadan takip edin.</p>
+          <p className="mt-1 text-sm text-muted-foreground">İşletmeleri, kullanıcıları, ürün kontrollerini, destek taleplerini ve sistem sağlığını tek noktadan yönetin.</p>
         </div>
         <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-medium text-emerald-300">
           <Activity className="h-3.5 w-3.5" /> Yönetim oturumu aktif
