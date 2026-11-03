@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireTenantContext } from "@/lib/session.server";
+import { requireWritableTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
 import { optionalStr, str, type FormState } from "@/lib/validation";
 
-export async function getSettingsAction(tenantId: string) {
-  return withTenant(tenantId, async (tx) => {
-    return tx.storeSettings.findUnique({ where: { tenantId } });
+export async function getSettingsAction() {
+  const { tenant } = await requireTenantContext();
+  return withTenant(tenant.id, async (tx) => {
+    return tx.storeSettings.findUnique({ where: { tenantId: tenant.id } });
   });
 }
 
@@ -15,7 +16,7 @@ export async function updateSettingsAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { tenant, user } = await requireTenantContext();
+  const { tenant, user } = await requireWritableTenantContext();
 
   const theme = str(formData, "theme") || "default";
   if (!["default", "modern", "minimal"].includes(theme)) {
