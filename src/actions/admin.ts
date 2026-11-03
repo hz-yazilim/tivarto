@@ -73,7 +73,13 @@ export async function listTenants() {
   await requirePlatformAdmin();
   return prisma.tenant.findMany({
     orderBy: { createdAt: "desc" },
-    include: { plan: true },
+    include: {
+      plan: true,
+      memberships: {
+        where: { role: "OWNER" },
+        select: { user: { select: { id: true, name: true, email: true } } },
+      },
+    },
   });
 }
 
@@ -452,4 +458,94 @@ export async function updateTenantMemberRoleAction(formData: FormData): Promise<
     });
   });
   revalidatePath("/panel/team");
+}
+
+
+/** İşletme sahibi, kendisi dışındaki ekip üyeliğini güvenli biçimde kaldırabilir. */
+export async function removeTenantMemberAction(formData: FormData): Promise<void> {
+  const context = await requireTenantContext();
+  if (context.role !== "OWNER") return;
+
+  const membershipId = str(formData, "membershipId");
+  const reason = str(formData, "reason").slice(0, 300);
+  if (!membershipId || reason.length < 5) return;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT set_config('app.platform', ${"on"}, true)`;
+    await tx.$executeRaw`SELECT set_config('app.tenant_id', ${context.tenant.id}, true)`;
+
+    const member = await tx.membership.findFirst({
+      where: { id: membershipId, tenantId: context.tenant.id },
+      include: { user: { select: { id: true, name: true, email: true, isPlatformAdmin: true } } },
+    });
+    if (!member || member.userId === context.user.id) return;
+
+    if (member.role === "OWNER") {
+      const ownerCount = await tx.membership.count({
+        where: { tenantId: context.tenant.id, role: "OWNER" },
+      });
+      if (ownerCount <= 1) return;
+    }
+
+    await tx.auditLog.create({
+      data: {
+        tenantId: context.tenant.id,
+        userId: context.user.id,
+        action: "team.member.removed",
+        entity: "Membership",
+        entityId: member.id,
+        details: reason,
+      },
+    });
+    await tx.membership.delete({ where: { id: member.id } });
+
+    const remainingMemberships = await tx.membership.count({
+      where: { userId: member.userId },
+    });
+    if (remainingMemberships === 0 && !member.user.isPlatformAdmin) {
+      // Başka işletmeye bağlı olmayan hesap artık kullanılabilir değildir.
+      // Oturumlar User ilişkisi üzerinden CASCADE ile temizlenir.
+      await tx.user.delete({ where: { id: member.userId } });
+    } else {
+      // Diğer işletmelerdeki üyeliği koru; yalnızca bu işletmeye bağlı oturumları kapat.
+      await tx.session.deleteMany({
+        where: { userId: member.userId, activeTenantId: context.tenant.id },
+      });
+    }
+  });
+
+  revalidatePath("/panel/team");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/logs");
+}
+
+/** Platform yöneticisi yalnızca hiçbir işletmeye bağlı olmayan yetkisiz hesapları silebilir. */
+export async function deleteOrphanPlatformUserAction(formData: FormData): Promise<void> {
+  const admin = await requirePlatformAdmin();
+  const userId = str(formData, "userId");
+  const reason = str(formData, "reason").slice(0, 300);
+  if (!userId || userId === admin.user.id || reason.length < 5) return;
+
+  await prisma.$transaction(async (tx) => {
+    const target = await tx.user.findUnique({
+      where: { id: userId },
+      include: { memberships: { select: { id: true } } },
+    });
+    if (!target || target.isPlatformAdmin || target.memberships.length > 0) return;
+
+    await tx.platformAuditLog.create({
+      data: {
+        actorId: admin.user.id,
+        action: "user.deleted",
+        targetType: "User",
+        targetId: target.id,
+        reason,
+        beforeData: { email: target.email, name: target.name },
+      },
+    });
+    await tx.user.delete({ where: { id: target.id } });
+  });
+
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/logs");
 }
