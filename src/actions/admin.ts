@@ -246,7 +246,7 @@ export async function createFeatureFlagAction(formData: FormData): Promise<void>
   if (await prisma.featureFlag.findUnique({ where: { key } })) return;
 
   const flag = await prisma.featureFlag.create({
-    data: { key, name, description, category, enabled: false, updatedBy: admin.user.id },
+    data: { key, name, description, category, enabled: false, updatedBy: admin.user.id, updatedAt: new Date() },
   });
   await prisma.platformAuditLog.create({
     data: {
@@ -373,7 +373,7 @@ export async function createSupportTicketAction(formData: FormData): Promise<voi
     const ticket = await tx.supportTicket.create({
       data: {
         tenantId: context.tenant.id, createdById: context.user.id,
-        subject, description, priority: safePriority,
+        subject, description, priority: safePriority, updatedAt: new Date(),
       },
     });
     await tx.auditLog.create({
