@@ -13,7 +13,7 @@
  *
  * Kullanım:
  *   DIRECT_URL="postgresql://admin:...@host/db" \
- *   APP_DB_USER=tiverto_app APP_DB_PASSWORD="guclu-bir-sifre" \
+ *   APP_DB_USER=tivarto_app APP_DB_PASSWORD="guclu-bir-sifre" \
  *   node scripts/create-app-role.mjs
  *
  * Çıktı olarak uygulamanın kullanması gereken DATABASE_URL'i yazdırır.
@@ -21,7 +21,7 @@
 import { Client } from "pg";
 
 const adminUrl = process.env.DIRECT_URL || process.env.DATABASE_URL || "";
-const appUser = process.env.APP_DB_USER || "tiverto_app";
+const appUser = process.env.APP_DB_USER || "tivarto_app";
 const appPassword = process.env.APP_DB_PASSWORD || "";
 
 if (!adminUrl) {
