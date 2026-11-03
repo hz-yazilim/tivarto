@@ -58,22 +58,22 @@ async function main() {
       );
       await client.query(createSql[0].sql);
       console.log(`✓ ${appUser} rolü oluşturuldu.`);
+    } else if (process.env.ROTATE_APP_DB_PASSWORD === "true") {
+      // Parola yalnızca açıkça istendiğinde döndürülür; her deploy'da
+      // değişmesi, yayındaki önceki deployment'ın DB bağlantısını koparır.
+      await client.query(`SET ROLE "${appUser}"`);
+      try {
+        const { rows: passwordSql } = await client.query(
+          `SELECT format('ALTER ROLE CURRENT_USER WITH PASSWORD %L', $1::text) AS sql`,
+          [appPassword]
+        );
+        await client.query(passwordSql[0].sql);
+      } finally {
+        await client.query("RESET ROLE");
+      }
+      console.log(`✓ ${appUser} parolası kontrollü olarak yenilendi.`);
     } else {
-      console.log(`= ${appUser} rolü zaten var, yetkileri güncelleniyor.`);
-    }
-
-    // Supabase'in kısıtlı CREATEROLE rolü başka bir rolün parolasını
-    // doğrudan değiştiremeyebilir. Uygulama rolüne SET izni verildiğinde
-    // kendi parolasını kendisi değiştirebilir.
-    await client.query(`SET ROLE "${appUser}"`);
-    try {
-      const { rows: passwordSql } = await client.query(
-        `SELECT format('ALTER ROLE CURRENT_USER WITH PASSWORD %L', $1::text) AS sql`,
-        [appPassword]
-      );
-      await client.query(passwordSql[0].sql);
-    } finally {
-      await client.query("RESET ROLE");
+      console.log(`= ${appUser} rolü zaten var; parola korunuyor, yetkiler güncelleniyor.`);
     }
 
     // Yetkiler (idempotent). Tanımlayıcılar format(%I) ile kaçırılır.
