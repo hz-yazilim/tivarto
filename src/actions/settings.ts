@@ -22,6 +22,17 @@ export async function updateSettingsAction(
   if (!["default", "modern", "minimal"].includes(theme)) {
     return { error: "Geçersiz tema." };
   }
+  const mapsUrl = optionalStr(formData, "mapsUrl");
+  if (mapsUrl) {
+    try {
+      const parsed = new URL(mapsUrl);
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+        return { error: "Harita bağlantısı http:// veya https:// ile başlamalıdır." };
+      }
+    } catch {
+      return { error: "Geçerli bir harita bağlantısı girin." };
+    }
+  }
 
   await withTenant(tenant.id, async (tx) => {
     const where = { tenantId: tenant.id };
@@ -32,7 +43,7 @@ export async function updateSettingsAction(
       phone: optionalStr(formData, "phone") ?? null,
       whatsapp: optionalStr(formData, "whatsapp") ?? null,
       address: optionalStr(formData, "address") ?? null,
-      mapsUrl: optionalStr(formData, "mapsUrl") ?? null,
+      mapsUrl: mapsUrl ?? null,
       theme,
     };
 
