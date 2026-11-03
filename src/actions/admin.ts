@@ -411,3 +411,72 @@ export async function setPlatformUserSuspensionAction(formData: FormData): Promi
   revalidatePath("/admin/users");
   revalidatePath("/admin/logs");
 }
+
+
+/** İşletme sahibi, yalnızca kendi işletmesinin ekip üyelerini yönetebilir. */
+export async function listTenantMembers() {
+  const context = await requireTenantContext();
+  if (context.role !== "OWNER") return [];
+  return withTenant(context.tenant.id, async (tx) => tx.membership.findMany({
+    where: { tenantId: context.tenant.id },
+    orderBy: [{ role: "asc" }, { id: "asc" }],
+    include: { user: { select: { id: true, name: true, email: true, createdAt: true, isSuspended: true } } },
+  }));
+}
+
+export async function addExistingUserToTenantAction(formData: FormData): Promise<void> {
+  const context = await requireTenantContext();
+  if (context.role !== "OWNER") return;
+  const email = str(formData, "email").toLowerCase();
+  if (!email || email.length > 254 || !email.includes("@")) return;
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || user.isSuspended) return;
+
+  await withTenant(context.tenant.id, async (tx) => {
+    const existing = await tx.membership.findFirst({
+      where: { tenantId: context.tenant.id, userId: user.id },
+      select: { id: true },
+    });
+    if (existing) return;
+    const membership = await tx.membership.create({
+      data: { tenantId: context.tenant.id, userId: user.id, role: "STAFF" },
+    });
+    await tx.auditLog.create({
+      data: {
+        tenantId: context.tenant.id, userId: context.user.id,
+        action: "team.member.added", entity: "Membership", entityId: membership.id,
+      },
+    });
+  });
+  revalidatePath("/panel/team");
+}
+
+export async function updateTenantMemberRoleAction(formData: FormData): Promise<void> {
+  const context = await requireTenantContext();
+  if (context.role !== "OWNER") return;
+  const membershipId = str(formData, "membershipId");
+  const role = str(formData, "role");
+  const reason = str(formData, "reason").slice(0, 300);
+  if (!membershipId || (role !== "OWNER" && role !== "STAFF") || reason.length < 5) return;
+
+  await withTenant(context.tenant.id, async (tx) => {
+    const member = await tx.membership.findFirst({
+      where: { id: membershipId, tenantId: context.tenant.id },
+    });
+    if (!member || member.role === role) return;
+    if (member.role === "OWNER" && role === "STAFF") {
+      const ownerCount = await tx.membership.count({
+        where: { tenantId: context.tenant.id, role: "OWNER" },
+      });
+      if (ownerCount <= 1) return;
+    }
+    await tx.membership.update({ where: { id: membershipId }, data: { role } });
+    await tx.auditLog.create({
+      data: {
+        tenantId: context.tenant.id, userId: context.user.id,
+        action: "team.member.role_changed", entity: "Membership", entityId: membershipId,
+      },
+    });
+  });
+  revalidatePath("/panel/team");
+}
