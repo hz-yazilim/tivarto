@@ -424,33 +424,6 @@ export async function listTenantMembers() {
   }));
 }
 
-export async function addExistingUserToTenantAction(formData: FormData): Promise<void> {
-  const context = await requireTenantContext();
-  if (context.role !== "OWNER") return;
-  const email = str(formData, "email").toLowerCase();
-  if (!email || email.length > 254 || !email.includes("@")) return;
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || user.isSuspended) return;
-
-  await withTenant(context.tenant.id, async (tx) => {
-    const existing = await tx.membership.findFirst({
-      where: { tenantId: context.tenant.id, userId: user.id },
-      select: { id: true },
-    });
-    if (existing) return;
-    const membership = await tx.membership.create({
-      data: { tenantId: context.tenant.id, userId: user.id, role: "STAFF" },
-    });
-    await tx.auditLog.create({
-      data: {
-        tenantId: context.tenant.id, userId: context.user.id,
-        action: "team.member.added", entity: "Membership", entityId: membership.id,
-      },
-    });
-  });
-  revalidatePath("/panel/team");
-}
-
 export async function updateTenantMemberRoleAction(formData: FormData): Promise<void> {
   const context = await requireTenantContext();
   if (context.role !== "OWNER") return;
@@ -474,7 +447,7 @@ export async function updateTenantMemberRoleAction(formData: FormData): Promise<
     await tx.auditLog.create({
       data: {
         tenantId: context.tenant.id, userId: context.user.id,
-        action: "team.member.role_changed", entity: "Membership", entityId: membershipId,
+        action: "team.member.role_changed", entity: "Membership", entityId: membershipId, details: reason,
       },
     });
   });
