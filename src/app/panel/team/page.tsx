@@ -1,20 +1,41 @@
-import { listTenantMembers, updateTenantMemberRoleAction, removeTenantMemberAction } from "@/actions/admin";
+import { listTenantMembers, updateTenantMemberRoleAction, removeTenantMemberAction, addExistingTenantMemberAction } from "@/actions/admin";
 import { requireTenantContext } from "@/lib/session.server";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 
 export const dynamic = "force-dynamic";
 
-export default async function TeamPage() {
+export default async function TeamPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; success?: string }>;
+}) {
   const context = await requireTenantContext();
+  const { error, success } = await searchParams;
   if (context.role !== "OWNER") {
     return <div className="rounded-2xl border border-border bg-card p-8"><h1 className="text-xl font-bold">Ekip yönetimi</h1><p className="mt-2 text-sm text-muted-foreground">Bu alanı yalnızca işletme sahibi görüntüleyebilir.</p></div>;
   }
   const members = await listTenantMembers();
   const ownerCount = members.filter((member) => member.role === "OWNER").length;
+  const errorMessages: Record<string, string> = {
+    "invalid-email": "Geçerli bir e-posta adresi girin.",
+    "not-found": "Bu e-posta ile kayıtlı bir Tivarto hesabı bulunamadı.",
+    "not-eligible": "Askıya alınmış veya platform yöneticisi hesapları personel olarak eklenemez.",
+    "already-member": "Bu hesap zaten işletme ekibinde.",
+  };
   return (
     <div className="space-y-6">
       <div><p className="text-xs font-semibold uppercase tracking-[.18em] text-purple-300">İŞLETME / EKİP</p><h1 className="mt-2 text-2xl font-bold">Ekip ve Yetkiler</h1><p className="mt-1 text-sm text-muted-foreground">İşletmenizdeki mevcut kullanıcıların sahip/personel rollerini yönetin.</p></div>
+      {success === "added" && <div role="status" className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-sm text-emerald-200">Mevcut kullanıcı işletmeye personel olarak eklendi.</div>}
+      {error && errorMessages[error] && <div role="alert" className="rounded-xl border border-rose-400/20 bg-rose-500/10 p-3 text-sm text-rose-200">{errorMessages[error]}</div>}
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <h2 className="font-semibold">Mevcut hesabı işletmeye ekle</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Kullanıcının önceden Tivarto hesabı bulunmalıdır. Davet e-postası gönderilmez; hesap doğrudan personel olarak bağlanır.</p>
+        <form action={addExistingTenantMemberAction} className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <input type="email" name="email" required maxLength={254} placeholder="personel@ornek.com" className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm" />
+          <SubmitButton size="sm">Personel olarak ekle</SubmitButton>
+        </form>
+      </div>
       <div className="rounded-2xl border border-border bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">İşletme üyeleri</h2><p className="mt-1 text-xs text-muted-foreground">{members.length} üye</p></div><span className="rounded-full bg-purple-500/10 px-3 py-1 text-xs text-purple-200">İşletme sahibi</span></div>
         <div className="mt-4 divide-y divide-border">
