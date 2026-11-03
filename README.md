@@ -29,7 +29,7 @@ panelinden (`/admin`) işletmeleri, paketleri ve ödemeleri yönetir.
 | `isPlatformAdmin = true` | `/admin` | Tüm işletmeler, planlar, ödemeler, loglar |
 | İşletme sahibi (`OWNER`) | `/panel` | Kendi işletmesinin tüm modülleri |
 | Personel (`STAFF`) | `/panel` | Kendi işletmesinin modülleri (rol ayrımı genişletilecek) |
-| Müşteri (demo) | `/musteri` | Siparişlerim + `/shop/demo` vitrininden alışveriş |
+| Müşteri | `/musteri` | Müşteri sipariş ekranı (müşteri hesabı akışı ayrıca tamamlanacak) |
 | Anonim | `/`, `/login`, `/register`, `/shop/[slug]` | Vitrinden sipariş verebilir |
 
 > **Örnek veri ve demo giriş kapalıdır.** Uygulama, örnek kullanıcı veya işletme üretmez. İlk platform yöneticisi, veritabanı hazırlandıktan sonra yalnızca sizin belirlediğiniz e-posta ve güçlü parola ile oluşturulur.
@@ -98,12 +98,7 @@ cp .env.example .env            # değerleri doldurun
 # DATABASE_URL, DIRECT_URL, NEXT_PUBLIC_ROOT_DOMAIN
 ```
 
-**Sadece demo olarak bakmak istiyorsan veritabanı kurmana gerek yok:**
-`.env` dosyasında `DATABASE_URL` satırını yorum satırı yap (veya hiç ekleme),
-ardından `npm run dev`. Uygulama bellek içi örnek veriyle açılır; `/login`
-ekranından istediğin bilgilerle veya ana sayfadaki tek tıklık butonlarla üç
-paneline de girebilirsin. Demo sırasında eklediğin kayıtlar sunucu yeniden
-başlayınca sıfırlanır.
+Uygulama gerçek işletme verisiyle çalışacak şekilde hazırlanmıştır. Örnek işletme, ürün, müşteri veya sipariş otomatik oluşturulmaz. Veritabanı bağlantısı tamamlanana kadar veri gerektiren ekranlar çalışmaz.
 
 Gerçek veritabanıyla çalışmak için:
 
@@ -188,7 +183,7 @@ npm run db:app-role
 # Çıktıdaki DATABASE_URL'i servisin Environment sekmesine yazın ve redeploy edin.
 
 npm run db:rls     # politikaları uygula + doğrula (DIRECT_URL ile)
-npm run db:seed    # demo verisi istiyorsan (DEMO_MODE=false ise atlanır)
+npm run db:bootstrap-admin # örnek veri üretmeden platform yöneticisini hazırlar
 ```
 
    `npm run db:rls` sonunda "superuser olan giriş yapabilen roller" uyarısı
@@ -213,7 +208,7 @@ prisma/
 scripts/
   migrate.mjs              # migration runner (Render)
   apply-rls.mjs            # RLS uygulayıcı
-  seed.mjs                 # demo verisi (RLS bağlamı içinde)
+  bootstrap-admin.mjs      # tek seferlik platform yöneticisi oluşturma
   create-app-role.mjs      # kısıtlı (RLS'etkin) uygulama rolü
 src/
   app/
@@ -297,42 +292,9 @@ src/
 
 ---
 
-## 9. Demo modu
+## 9. Demo ve örnek veri politikası
 
-İki ayrı kavram vardır:
-
-| | `DEMO_MODE` | Demo veri katmanı (`DEMO_ACTIVE`) |
-|---|---|---|
-| Ne yapar? | Panel/admin/vitrinde "Demo" uyarı şeridi gösterir | Veritabanı yerine bellek içi örnek veri kullanır, giriş bilgilerini doğrulamaz |
-| Ne zaman açık? | `DEMO_MODE !== "false"` (varsayılan açık) | `DEMO_MODE` açık **ve** (`DATABASE_URL` yok veya `DEMO_FAKE_DATA=true`) |
-| Canlı ortam | Etiket olarak kalabilir | **Kapalı olmalı** — `DATABASE_URL` tanımlı olduğu için otomatik kapanır |
-
-### Demo veri katmanı (veritabanı bağlantısı yapılana kadar)
-
-- `src/lib/demo-data.ts` uydurulmuş işletmeler, ürünler, siparişler, müşteriler
-  vb. içerir; `src/lib/demo-client.ts` Prisma'nın bu projede kullanılan sorgu
-  alt kümesini (where/orderBy/include/select/aggregate/groupBy/create/update/
-  delete/transaction) taklit eder. `src/lib/db.ts` demo aktifken gerçek istemci
-  yerine bunu kullanır; sayfa ve action kodları **değişmez**.
-- `withTenant()` / `withPlatform()` içindeki RLS bağlamı `AsyncLocalStorage`
-  ile taklit edilir; işletme verisi yine yalnızca kendi tenant'ına görünür.
-- Giriş: `/login` ekranında e-posta + şifre **doğrulanmaz**, seçilen rol için
-  örnek hesapla oturum açılır. Üç rol ve hedefleri:
-  `admin → /admin`, `business → /panel`, `customer → /musteri` + `/shop/demo`.
-  Ana sayfadaki butonlar veya panellerin üstündeki "Demo" şeridi ile rol
-  değiştirmek için çıkış yapmaya gerek yoktur.
-- Normal müşteri deneyimi: `/shop/demo` herkese açık vitrin (ürün seç, sipariş
-  ver), `/musteri` ise "Siparişlerim" panelidir. Vitrinden verilen sipariş
-  demo sırasında işletme panelindeki `/panel/orders` ekranına düşer.
-- Demo sırasında yapılan ekleme/silme işlemleri aynı sunucu sürecinde görünür;
-  süreç yeniden başlayınca başlangıç verisine döner. **Hiçbir kayıt gerçek
-  veritabanına yazılmaz.**
-- `/api/health` demo katmanı açıkken `mode: "demo"` ve
-  `database: "demo-fake-data"` döner (gerçek DB kontrolü yapılmaz).
-
-> ⚠️ **Gerçek müşteri/işletme bilgisi girilmemeli, gerçek ödeme alınmamalıdır.**
-> Veritabanı bağlantısı kurulduğunda `DEMO_MODE=false` yapın; demo giriş
-> kolaylığı `DATABASE_URL` varlığında zaten otomatik olarak devre dışı kalır.
+Demo modu varsayılan olarak kapalıdır (`DEMO_MODE=false`). Canlı ortamda demo modu açılmamalıdır. İlk kurulumda örnek işletme, ürün, müşteri, sipariş veya tahsilat oluşturulmaz. Platform yöneticisi yalnızca `BOOTSTRAP_ADMIN_EMAIL` ve `BOOTSTRAP_ADMIN_PASSWORD` ile açıkça tanımlanmış hesap üzerinden hazırlanır.
 
 ---
 
