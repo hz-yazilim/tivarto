@@ -23,7 +23,7 @@ export default async function AdminDashboard() {
         <StatCard title="Pasif / Askıya Alınmış" value={stats.suspendedTenants} icon="😴" />
         <StatCard title="Fiyat Planı Sayısı" value={stats.planCount} icon="📋" />
         <StatCard
-          title="Toplam Ödeme (PAID)"
+          title="Manuel Kaydedilen Tahsilat"
           value={stats.paymentTotal.toLocaleString("tr-TR") + " TL"}
           icon="💳"
         />
