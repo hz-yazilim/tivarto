@@ -19,17 +19,31 @@ export async function createStockMovementAction(
   if (!["IN", "OUT", "ADJUST"].includes(type)) return;
   if (quantity <= 0) return;
 
-  await withTenant(tenant.id, async (tx) => {
+  const result = await withTenant(tenant.id, async (tx) => {
     const product = await tx.product.findFirst({
       where: { id: productId, tenantId: tenant.id },
       select: { id: true, stock: true },
     });
-    if (!product) return;
+    if (!product) return "Ürün bulunamadı.";
 
-    let newStock = product.stock;
-    if (type === "IN") newStock += quantity;
-    else if (type === "OUT") newStock = Math.max(0, product.stock - quantity);
-    else newStock = quantity; // ADJUST: girilen miktar yeni stok olur
+    if (type === "OUT") {
+      // Koşullu güncelleme eşzamanlı satışlarda da stoğun negatife düşmesini önler.
+      const updated = await tx.product.updateMany({
+        where: { id: productId, tenantId: tenant.id, stock: { gte: quantity } },
+        data: { stock: { decrement: quantity } },
+      });
+      if (updated.count !== 1) return "Yeterli stok bulunmuyor. Stok miktarını yenileyip tekrar deneyin.";
+    } else if (type === "IN") {
+      await tx.product.update({
+        where: { id: productId },
+        data: { stock: { increment: quantity } },
+      });
+    } else {
+      await tx.product.update({
+        where: { id: productId },
+        data: { stock: quantity },
+      });
+    }
 
     await tx.stockMovement.create({
       data: {
@@ -41,12 +55,9 @@ export async function createStockMovementAction(
         createdBy: user.id,
       },
     });
-
-    await tx.product.update({
-      where: { id: productId },
-      data: { stock: newStock },
-    });
+    return null;
   });
+  if (result) redirect(`/panel/stock?error=${encodeURIComponent(result)}`);
 
   revalidatePath("/panel/stock");
   redirect("/panel/stock");
