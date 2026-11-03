@@ -48,3 +48,22 @@ CREATE INDEX "SupportTicket_tenantId_createdAt_idx" ON "SupportTicket"("tenantId
 CREATE INDEX "SupportTicket_status_priority_createdAt_idx" ON "SupportTicket"("status", "priority", "createdAt");
 ALTER TABLE "SupportTicket" ADD CONSTRAINT "SupportTicket_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "SupportTicket" ADD CONSTRAINT "SupportTicket_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- Audit kayıtları uygulama seviyesinde append-only olacak şekilde korunur.
+CREATE OR REPLACE FUNCTION prevent_platform_audit_log_mutation()
+RETURNS trigger AS $$
+BEGIN
+  RAISE EXCEPTION 'PlatformAuditLog kayıtları değiştirilemez veya silinemez.';
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER "PlatformAuditLog_immutable"
+BEFORE UPDATE OR DELETE ON "PlatformAuditLog"
+FOR EACH ROW EXECUTE FUNCTION prevent_platform_audit_log_mutation();
+
+-- Varsayılan operasyon anahtarları: bakım modu başlangıçta kapalıdır.
+INSERT INTO "FeatureFlag" ("id", "key", "name", "description", "enabled", "category", "updatedAt")
+VALUES
+  ('flag_maintenance_mode', 'maintenance_mode', 'Bakım modu', 'İşletmelerin veri değiştiren işlemlerini geçici olarak durdurur.', false, 'operations', CURRENT_TIMESTAMP),
+  ('flag_beta_reports', 'beta_reports', 'Gelişmiş raporlar', 'Gelişmiş rapor ekranları için kontrollü erişim anahtarı.', false, 'product', CURRENT_TIMESTAMP),
+  ('flag_new_inventory', 'new_inventory', 'Yeni stok deneyimi', 'Yeni stok modülü için kontrollü yayın anahtarı.', false, 'product', CURRENT_TIMESTAMP)
+ON CONFLICT ("key") DO NOTHING;
