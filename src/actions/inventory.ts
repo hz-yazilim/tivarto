@@ -16,7 +16,7 @@ export async function createStockMovementAction(
   const note = optionalStr(formData, "note");
 
   if (!productId) return;
-  if (!["IN", "OUT", "ADJUST"].includes(type)) return;
+  if (!["IN", "OUT"].includes(type)) return;
   if (quantity <= 0) return;
 
   const result = await withTenant(tenant.id, async (tx) => {
@@ -49,10 +49,19 @@ export async function createStockMovementAction(
       data: {
         tenantId: tenant.id,
         productId,
-        type: type as "IN" | "OUT" | "ADJUST",
+        type: type as "IN" | "OUT",
         quantity,
         note,
         createdBy: user.id,
+      },
+    });
+    await tx.auditLog.create({
+      data: {
+        tenantId: tenant.id,
+        userId: user.id,
+        action: `stock.movement.${type.toLowerCase()}`,
+        entity: "Product",
+        entityId: productId,
       },
     });
     return null;
@@ -99,6 +108,15 @@ export async function adjustStockAction(formData: FormData): Promise<void> {
             ? "Stok sayımı ile artırıldı"
             : "Stok sayımı ile azaltıldı"),
         createdBy: user.id,
+      },
+    });
+    await tx.auditLog.create({
+      data: {
+        tenantId: tenant.id,
+        userId: user.id,
+        action: "stock.adjust",
+        entity: "Product",
+        entityId: productId,
       },
     });
     return null;
