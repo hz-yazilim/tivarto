@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { TenantStatus, SupportTicketStatus } from "@prisma/client";
 import { prisma, withPlatform, withTenant } from "@/lib/db";
 import { requirePlatformAdmin, requireTenantContext } from "@/lib/session.server";
+import { destroyAllSessionsForUser } from "@/lib/auth";
 import { str, toInt, toNumber } from "@/lib/validation";
 
 /**
@@ -56,7 +57,7 @@ export async function listPlatformUsers(search = "") {
     orderBy: { createdAt: "desc" },
     take: 200,
     select: {
-      id: true, name: true, email: true, isPlatformAdmin: true, createdAt: true,
+      id: true, name: true, email: true, isPlatformAdmin: true, isSuspended: true, createdAt: true,
       memberships: {
         select: {
           role: true,
@@ -367,4 +368,29 @@ export async function createSupportTicketAction(formData: FormData): Promise<voi
   });
   revalidatePath("/panel/support");
   revalidatePath("/admin/support");
+}
+
+
+/** Hesap askıya alma geri alınabilir; tüm mevcut oturum belirteçleri iptal edilir. */
+export async function setPlatformUserSuspensionAction(formData: FormData): Promise<void> {
+  const admin = await requirePlatformAdmin();
+  const userId = str(formData, "userId");
+  const suspended = str(formData, "suspended") === "true";
+  const reason = str(formData, "reason").slice(0, 300);
+  if (!userId || userId === admin.user.id || reason.length < 5) return;
+  const target = await prisma.user.findUnique({ where: { id: userId } });
+  if (!target || target.isPlatformAdmin || target.isSuspended === suspended) return;
+
+  await prisma.user.update({ where: { id: userId }, data: { isSuspended: suspended } });
+  if (suspended) await destroyAllSessionsForUser(userId);
+  await prisma.platformAuditLog.create({
+    data: {
+      actorId: admin.user.id, action: suspended ? "user.suspended" : "user.reactivated",
+      targetType: "User", targetId: userId, reason,
+      beforeData: { isSuspended: target.isSuspended },
+      afterData: { isSuspended: suspended },
+    },
+  });
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/logs");
 }
