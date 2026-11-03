@@ -1,4 +1,4 @@
-import { demoSwitchRoleAction } from "@/actions/auth";
+import { demoStartPanelSelectionAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import RegisterForm from "@/app/register/register-form";
 import { DEMO_ACTIVE } from "@/lib/demo-config";
@@ -29,11 +29,9 @@ export default function RegisterPage() {
             Şu anda hesap/veritabanı kurulumu etkin değil. Form doldurmak yerine
             örnek işletme panelini tek dokunuşla açabilirsiniz.
           </p>
-          <form action={demoSwitchRoleAction} className="mt-5">
-            <input type="hidden" name="role" value="business" />
-            <input type="hidden" name="callbackUrl" value="/panel" />
+          <form action={demoStartPanelSelectionAction} className="mt-5">
             <Button type="submit" size="lg" className="w-full">
-              Demo işletme panelini aç
+              Ücretsiz devam et ve panel seç
             </Button>
           </form>
           <a
