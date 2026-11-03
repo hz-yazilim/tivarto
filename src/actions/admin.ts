@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { TenantStatus } from "@prisma/client";
+import type { TenantStatus, SupportTicketStatus } from "@prisma/client";
 import { prisma, withPlatform, withTenant } from "@/lib/db";
-import { requirePlatformAdmin } from "@/lib/session.server";
+import { requirePlatformAdmin, requireTenantContext } from "@/lib/session.server";
 import { str, toInt, toNumber } from "@/lib/validation";
 
 /**
@@ -210,4 +210,161 @@ export async function listAuditLogs() {
       include: { tenant: true },
     });
   });
+}
+
+
+/** Feature flag kayıtları platform çapında yönetilir. */
+export async function listFeatureFlags() {
+  await requirePlatformAdmin();
+  return prisma.featureFlag.findMany({ orderBy: [{ category: "asc" }, { name: "asc" }] });
+}
+
+export async function createFeatureFlagAction(formData: FormData): Promise<void> {
+  const admin = await requirePlatformAdmin();
+  const key = str(formData, "key").toLowerCase().replace(/[^a-z0-9_]+/g, "_").slice(0, 60);
+  const name = str(formData, "name").slice(0, 100);
+  const description = str(formData, "description").slice(0, 300);
+  const category = str(formData, "category").slice(0, 40) || "product";
+  if (!/^[a-z][a-z0-9_]{2,59}$/.test(key) || name.length < 2 || description.length < 5) return;
+
+  const flag = await prisma.featureFlag.create({
+    data: { key, name, description, category, enabled: false, updatedBy: admin.user.id },
+  });
+  await prisma.platformAuditLog.create({
+    data: {
+      actorId: admin.user.id, action: "feature_flag.created", targetType: "FeatureFlag",
+      targetId: flag.id, reason: "Yeni özellik anahtarı oluşturuldu", afterData: { key, enabled: false },
+    },
+  });
+  revalidatePath("/admin/features");
+}
+
+export async function setFeatureFlagAction(formData: FormData): Promise<void> {
+  const admin = await requirePlatformAdmin();
+  const id = str(formData, "id");
+  const enabled = str(formData, "enabled") === "true";
+  const reason = str(formData, "reason").slice(0, 300);
+  if (!id || reason.length < 5) return;
+
+  const existing = await prisma.featureFlag.findUnique({ where: { id } });
+  if (!existing || existing.enabled === enabled) return;
+  await prisma.featureFlag.update({
+    where: { id },
+    data: { enabled, updatedBy: admin.user.id },
+  });
+  await prisma.platformAuditLog.create({
+    data: {
+      actorId: admin.user.id, action: "feature_flag.changed", targetType: "FeatureFlag",
+      targetId: id, reason,
+      beforeData: { enabled: existing.enabled, key: existing.key },
+      afterData: { enabled, key: existing.key },
+    },
+  });
+  revalidatePath("/admin/features");
+  revalidatePath("/admin/logs");
+}
+
+/** Platform çapındaki denetim izi; arama yalnızca güvenli metin alanlarında yapılır. */
+export async function listPlatformAuditLogs(search = "") {
+  await requirePlatformAdmin();
+  const q = search.trim().slice(0, 80);
+  return prisma.platformAuditLog.findMany({
+    where: q ? {
+      OR: [
+        { action: { contains: q, mode: "insensitive" } },
+        { targetType: { contains: q, mode: "insensitive" } },
+        { targetId: { contains: q, mode: "insensitive" } },
+        { actorId: { contains: q, mode: "insensitive" } },
+      ],
+    } : undefined,
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+}
+
+export async function listSupportTickets() {
+  await requirePlatformAdmin();
+  return withPlatform(async (tx) => tx.supportTicket.findMany({
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    take: 200,
+    include: {
+      tenant: { select: { id: true, name: true, slug: true } },
+      creator: { select: { id: true, name: true, email: true } },
+    },
+  }));
+}
+
+export async function updateSupportTicketAction(formData: FormData): Promise<void> {
+  const admin = await requirePlatformAdmin();
+  const id = str(formData, "id");
+  const status = str(formData, "status") as SupportTicketStatus;
+  const resolutionNote = str(formData, "resolutionNote").slice(0, 1500);
+  const reason = str(formData, "reason").slice(0, 300);
+  const allowed: SupportTicketStatus[] = ["OPEN", "IN_PROGRESS", "WAITING_CUSTOMER", "RESOLVED", "CLOSED"];
+  if (!id || !allowed.includes(status) || reason.length < 5) return;
+
+  const ticket = await withPlatform(async (tx) => tx.supportTicket.findUnique({ where: { id } }));
+  if (!ticket) return;
+  const updated = await withTenant(ticket.tenantId, async (tx) => {
+    const result = await tx.supportTicket.update({
+      where: { id },
+      data: { status, resolutionNote: resolutionNote || null },
+    });
+    await tx.auditLog.create({
+      data: {
+        tenantId: ticket.tenantId, userId: admin.user.id,
+        action: "support.ticket.updated", entity: "SupportTicket", entityId: id,
+      },
+    });
+    return result;
+  });
+  await prisma.platformAuditLog.create({
+    data: {
+      actorId: admin.user.id, action: "support.ticket.updated", targetType: "SupportTicket",
+      targetId: id, reason,
+      beforeData: { status: ticket.status },
+      afterData: { status: updated.status },
+    },
+  });
+  revalidatePath("/admin/support");
+  revalidatePath("/panel/support");
+}
+
+export async function listTenantSupportTickets() {
+  const context = await requireTenantContext();
+  return withTenant(context.tenant.id, async (tx) => tx.supportTicket.findMany({
+    where: { tenantId: context.tenant.id },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: {
+      id: true, subject: true, description: true, status: true, priority: true,
+      resolutionNote: true, createdAt: true, updatedAt: true,
+    },
+  }));
+}
+
+export async function createSupportTicketAction(formData: FormData): Promise<void> {
+  const context = await requireTenantContext();
+  const subject = str(formData, "subject").slice(0, 120);
+  const description = str(formData, "description").slice(0, 3000);
+  const priority = str(formData, "priority");
+  if (subject.length < 5 || description.length < 10) return;
+  const safePriority = ["LOW", "NORMAL", "HIGH"].includes(priority) ? priority as "LOW" | "NORMAL" | "HIGH" : "NORMAL";
+
+  await withTenant(context.tenant.id, async (tx) => {
+    const ticket = await tx.supportTicket.create({
+      data: {
+        tenantId: context.tenant.id, createdById: context.user.id,
+        subject, description, priority: safePriority,
+      },
+    });
+    await tx.auditLog.create({
+      data: {
+        tenantId: context.tenant.id, userId: context.user.id,
+        action: "support.ticket.created", entity: "SupportTicket", entityId: ticket.id,
+      },
+    });
+  });
+  revalidatePath("/panel/support");
+  revalidatePath("/admin/support");
 }
