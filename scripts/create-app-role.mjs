@@ -57,12 +57,9 @@ async function main() {
       await client.query(createSql[0].sql);
       console.log(`✓ ${appUser} rolü oluşturuldu.`);
     } else {
-      console.log(`= ${appUser} rolü zaten var; mevcut parola korunuyor.`);
-    }
-
-    // Parola yalnızca açıkça istendiğinde yenilenir. Her deploy'da döndürmek
-    // yayındaki eski function'ların bağlantısını kesebilir.
-    if (rows.length > 0 && process.env.ROTATE_APP_DB_PASSWORD === "true") {
+      console.log(`= ${appUser} rolü zaten var; uygulama parolası eşitleniyor.`);
+      // Runtime her bağlantıda APP_DB_PASSWORD kullanır; rolü de aynı
+      // gizli değerle eşitlemek DATABASE_URL içindeki eski parolayı etkisiz kılar.
       await client.query(`SET ROLE "${appUser}"`);
       try {
         const { rows: passwordSql } = await client.query(
@@ -73,7 +70,6 @@ async function main() {
       } finally {
         await client.query("RESET ROLE");
       }
-      console.log(`✓ ${appUser} parolası kontrollü olarak yenilendi.`);
     }
 
     // Yetkiler (idempotent). Tanımlayıcılar format(%I) ile kaçırılır.
