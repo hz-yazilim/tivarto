@@ -10,6 +10,7 @@ export default async function AdminDashboard() {
 
   const shortcuts = [
     { href: "/admin/tenants", title: "İşletmeler", description: "Hesapları, durumları ve plan atamalarını yönet", icon: Building2 },
+    { href: "/admin/users", title: "Kullanıcılar", description: "Kayıtlı hesapları ve işletme bağlantılarını görüntüle", icon: Users },
     { href: "/admin/plans", title: "Abonelik planları", description: "Paket limitlerini ve aylık fiyatları düzenle", icon: Layers3 },
     { href: "/admin/payments", title: "Ödemeler", description: "Manuel tahsilat kayıtlarını ve geçmişi görüntüle", icon: CreditCard },
     { href: "/admin/logs", title: "Denetim kayıtları", description: "Platform ve işletme etkinliklerini incele", icon: ScrollText },
