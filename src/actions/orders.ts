@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { OrderStatus } from "@prisma/client";
-import { requireTenantContext } from "@/lib/session.server";
+import { requireWritableTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
 import { str } from "@/lib/validation";
 
@@ -16,7 +16,7 @@ const STATUSES: OrderStatus[] = [
 ];
 
 export async function updateOrderStatusAction(formData: FormData): Promise<void> {
-  const { tenant, user } = await requireTenantContext();
+  const { tenant, user } = await requireWritableTenantContext();
   const id = str(formData, "id");
   const status = str(formData, "status") as OrderStatus;
   if (!id || !STATUSES.includes(status)) return;
@@ -86,7 +86,9 @@ export async function updateOrderStatusAction(formData: FormData): Promise<void>
 }
 
 export async function listOrders(tenantId: string) {
-  return withTenant(tenantId, async (tx) => {
+  const { tenant } = await requireTenantContext();
+  if (tenant.id !== tenantId) throw new Error("Bu işletmenin siparişlerine erişemezsiniz.");
+  return withTenant(tenant.id, async (tx) => {
     return tx.order.findMany({
       orderBy: { createdAt: "desc" },
       take: 100,
@@ -96,7 +98,9 @@ export async function listOrders(tenantId: string) {
 }
 
 export async function getOrder(tenantId: string, id: string) {
-  return withTenant(tenantId, async (tx) => {
+  const { tenant } = await requireTenantContext();
+  if (tenant.id !== tenantId) throw new Error("Bu işletmenin siparişlerine erişemezsiniz.");
+  return withTenant(tenant.id, async (tx) => {
     return tx.order.findFirst({
       where: { id, tenantId },
       include: { items: { include: { product: true } } },
