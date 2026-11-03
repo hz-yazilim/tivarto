@@ -23,7 +23,6 @@ export default function StorefrontOrder({
 }: {
   tenantId: string;
   tenantName: string;
-  whatsappNumber: string;
   products: ShopProduct[];
   disabled?: boolean;
 }) {
@@ -165,7 +164,7 @@ export default function StorefrontOrder({
                 </div>
 
                 <div className="md:col-span-2">
-                  <SubmitButton disabled={lines.length === 0} className="w-full">
+                  <SubmitButton disabled={lines.length === 0 || Boolean(state?.ok)} className="w-full">
                     Siparişi Gönder
                   </SubmitButton>
                   <p className="mt-2 text-xs text-muted-foreground">
