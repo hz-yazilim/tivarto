@@ -29,7 +29,7 @@ export default async function LoginPage({
           <p className="text-xs font-bold uppercase tracking-[.2em] text-purple-300">TEKRAR HOŞ GELDİN</p>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-white">Hesabına giriş yap</h1>
           <p className="mt-2 text-sm leading-6 text-zinc-400">
-            İşletmeni yönetmeye kaldığın yerden devam et.
+            {isAdminLogin ? "Tivarto platform yönetimine devam et." : "İşletmeni yönetmeye kaldığın yerden devam et."}
           </p>
         </div>
 
