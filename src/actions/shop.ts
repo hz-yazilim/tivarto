@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma, withTenant } from "@/lib/db";
 import {
   isValidPhone,
+  normalizeWhatsAppNumber,
   optionalStr,
   str,
   toInt,
@@ -206,7 +207,7 @@ export async function createStorefrontOrderAction(
   revalidatePath("/panel/orders");
   revalidatePath("/panel");
 
-  const whatsappNumber = (tenant.storeSettings?.whatsapp ?? "").replace(/\D/g, "");
+  const whatsappNumber = normalizeWhatsAppNumber(tenant.storeSettings?.whatsapp ?? "");
   const summary = [
     `Merhaba ${tenant.name},`,
     "",
@@ -227,9 +228,9 @@ export async function createStorefrontOrderAction(
     .filter(Boolean)
     .join("\n");
 
-  const whatsappUrl = `https://wa.me/${whatsappNumber || "90"}?text=${encodeURIComponent(
-    summary
-  )}`;
+  const whatsappUrl = whatsappNumber
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(summary)}`
+    : undefined;
 
   return {
     ok: true,
