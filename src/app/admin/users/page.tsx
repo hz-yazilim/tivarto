@@ -1,4 +1,4 @@
-import { listPlatformUsers, setPlatformUserSuspensionAction } from "@/actions/admin";
+import { listPlatformUsers, setPlatformUserSuspensionAction, deleteOrphanPlatformUserAction } from "@/actions/admin";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +67,13 @@ export default async function AdminUsersPage({
                       <SubmitButton size="sm" variant={user.isSuspended ? "default" : "destructive"}>{user.isSuspended ? "Hesabı etkinleştir" : "Hesabı askıya al"}</SubmitButton>
                     </form>}
                     <div className="mt-1 text-[10px] text-muted-foreground">{user.isSuspended ? "Askıya alınmış" : "Aktif"}</div>
+                    {!user.isPlatformAdmin && user.memberships.length === 0 && (
+                      <form action={deleteOrphanPlatformUserAction} className="mt-2 flex min-w-[190px] flex-col gap-2">
+                        <input type="hidden" name="userId" value={user.id} />
+                        <input name="reason" minLength={5} maxLength={300} required placeholder="Silme gerekçesi" className="h-8 rounded border border-input bg-background px-2 text-xs" />
+                        <SubmitButton size="sm" variant="destructive">Bağlantısız hesabı sil</SubmitButton>
+                      </form>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -75,7 +82,7 @@ export default async function AdminUsersPage({
           </table>
         </div>
       </div>
-      <p className="text-xs leading-5 text-muted-foreground">Askıya alma geri alınabilir ve mevcut oturumları iptal eder. Platform yöneticileri bu ekrandan değiştirilemez. Kalıcı silme ve yönetici rolü değişikliği ayrı, çok aşamalı güvenlik akışı gerektirdiği için kapalıdır.</p>
+      <p className="text-xs leading-5 text-muted-foreground">Askıya alma geri alınabilir ve mevcut oturumları iptal eder. Platform yöneticileri bu ekrandan değiştirilemez. Kalıcı silme yalnızca hiçbir işletmeye bağlı olmayan normal hesaplarda açılır; işletme sahibi/personel hesapları bu ekrandan silinemez.</p>
     </div>
   );
 }
