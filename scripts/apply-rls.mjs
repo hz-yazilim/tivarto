@@ -32,6 +32,7 @@ const PROTECTED_TABLES = [
   "GoodsReceiptItem",
   "AuditLog",
   "Payment",
+  "SupportTicket",
 ];
 
 async function main() {
