@@ -98,7 +98,11 @@ export async function updateTenantStatus(formData: FormData): Promise<void> {
   if (!id || (status !== "ACTIVE" && status !== "SUSPENDED")) return;
 
   // Tenant tablosu platform seviyesindedir (RLS yok).
+  const before = await prisma.tenant.findUnique({ where: { id }, select: { status: true } });
+  if (!before || before.status === status) return;
   await prisma.tenant.update({ where: { id }, data: { status } });
+  const admin = await requirePlatformAdmin();
+  await prisma.platformAuditLog.create({ data: { actorId: admin.user.id, action: "tenant.status.changed", targetType: "Tenant", targetId: id, reason: str(formData, "reason").slice(0, 300) || "İşletme durumu güncellendi", beforeData: { status: before.status }, afterData: { status } } });
   await withTenant(id, async (tx) => {
     await tx.auditLog.create({
       data: {
@@ -119,9 +123,12 @@ export async function updateTenantPlan(formData: FormData): Promise<void> {
   if (!id || !planId) return;
 
   const plan = await prisma.plan.findUnique({ where: { id: planId } });
-  if (!plan) return;
+  const tenant = await prisma.tenant.findUnique({ where: { id }, select: { planId: true } });
+  if (!plan || !tenant || tenant.planId === planId) return;
 
   await prisma.tenant.update({ where: { id }, data: { planId } });
+  const admin = await requirePlatformAdmin();
+  await prisma.platformAuditLog.create({ data: { actorId: admin.user.id, action: "tenant.plan.changed", targetType: "Tenant", targetId: id, reason: "İşletme planı güncellendi", beforeData: { planId: tenant.planId }, afterData: { planId } } });
   revalidatePath("/admin/tenants");
 }
 
@@ -139,7 +146,7 @@ export async function createPlanAction(formData: FormData): Promise<void> {
   const exists = await prisma.plan.findUnique({ where: { name } });
   if (exists) return;
 
-  await prisma.plan.create({
+  const createdPlan = await prisma.plan.create({
     data: {
       name,
       priceMonthly: Math.round(priceMonthly),
@@ -147,6 +154,8 @@ export async function createPlanAction(formData: FormData): Promise<void> {
       maxStorageMb: Math.max(1, toInt(str(formData, "maxStorageMb"), 5000)),
     },
   });
+  const admin = await requirePlatformAdmin();
+  await prisma.platformAuditLog.create({ data: { actorId: admin.user.id, action: "plan.created", targetType: "Plan", targetId: createdPlan.id, reason: "Yeni abonelik planı oluşturuldu", afterData: { name: createdPlan.name, priceMonthly: createdPlan.priceMonthly } } });
   revalidatePath("/admin/plans");
 }
 
@@ -156,10 +165,14 @@ export async function deletePlanAction(formData: FormData): Promise<void> {
   if (!id) return;
 
   // Plana bağlı işletme varsa silme (veri kaybını önle).
+  const plan = await prisma.plan.findUnique({ where: { id } });
+  if (!plan) return;
   const inUse = await prisma.tenant.count({ where: { planId: id } });
   if (inUse > 0) return;
 
   await prisma.plan.deleteMany({ where: { id } });
+  const admin = await requirePlatformAdmin();
+  await prisma.platformAuditLog.create({ data: { actorId: admin.user.id, action: "plan.deleted", targetType: "Plan", targetId: id, reason: "Kullanılmayan plan silindi", beforeData: { name: plan.name, priceMonthly: plan.priceMonthly } } });
   revalidatePath("/admin/plans");
 }
 
@@ -199,7 +212,9 @@ export async function createPaymentAction(formData: FormData): Promise<void> {
       },
     });
   });
+  await prisma.platformAuditLog.create({ data: { actorId: admin.user.id, action: "payment.manual_recorded", targetType: "Tenant", targetId: tenantId, reason: description || "Manuel tahsilat kaydı", afterData: { amount, currency: "TRY" } } });
   revalidatePath("/admin/payments");
+  revalidatePath("/admin/logs");
 }
 
 export async function listAuditLogs() {
