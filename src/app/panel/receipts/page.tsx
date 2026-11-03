@@ -78,7 +78,7 @@ export default async function ReceiptsPage() {
                       {STATUS_LABEL[r.status] ?? r.status}
                     </span>
                     <div className="text-right text-sm font-medium">
-                      {r.items.reduce((sum, it) => sum + it.receivedQuantity, 0)} adet
+                      {r.items.reduce((sum, it) => sum + Math.max(0, it.receivedQuantity - it.damagedQuantity), 0)} sağlam adet
                     </div>
                   </div>
                 </div>
