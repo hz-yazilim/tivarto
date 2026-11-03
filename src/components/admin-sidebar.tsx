@@ -12,12 +12,14 @@ import {
   Menu,
   X,
   ArrowLeftRight,
+  Users,
 } from "lucide-react";
 import { classNames } from "./ui/utils";
 
 const NAV = [
   { name: "Pano", href: "/admin", icon: LayoutDashboard },
   { name: "İşletmeler", href: "/admin/tenants", icon: Building2 },
+  { name: "Kullanıcılar", href: "/admin/users", icon: Users },
   { name: "Planlar", href: "/admin/plans", icon: CreditCard },
   { name: "Ödemeler", href: "/admin/payments", icon: CreditCard },
   { name: "Kayıtlar", href: "/admin/logs", icon: ScrollText },
