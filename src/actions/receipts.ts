@@ -31,9 +31,10 @@ export async function createGoodsReceiptAction(
 
   const supplierId = optionalStr(formData, "supplierId") ?? null;
   const statusRaw = str(formData, "status") || "PENDING";
-  const status = RECEIPT_STATUSES.includes(statusRaw as GoodsReceiptStatus)
-    ? (statusRaw as GoodsReceiptStatus)
-    : "PENDING";
+  if (!RECEIPT_STATUSES.includes(statusRaw as GoodsReceiptStatus) || statusRaw === "PENDING") {
+    return { error: "Geçerli bir mal kabul durumu seçin. Bekleyen teslimatlar bu ekrandan kaydedilemez." };
+  }
+  const status = statusRaw as GoodsReceiptStatus;
   const note = optionalStr(formData, "note");
 
   let items: ParsedItem[];
@@ -45,12 +46,34 @@ export async function createGoodsReceiptAction(
     return { error: "Ürün listesi geçersiz." };
   }
 
-  items = items.filter((it) => it && typeof it.productId === "string" && it.productId);
+  if (items.some((it) => !it || typeof it.productId !== "string" || !it.productId)) {
+    return { error: "Ürün satırlarından biri geçersiz." };
+  }
   if (items.length === 0) {
     return { error: "En az bir ürün ekleyin." };
   }
   if (items.length > 100) {
     return { error: "Tek seferde en fazla 100 satır ekleyebilirsiniz." };
+  }
+
+  for (const item of items) {
+    const expected = Number(item.expectedQuantity);
+    const received = Number(item.receivedQuantity);
+    const missing = Number(item.missingQuantity);
+    const damaged = Number(item.damagedQuantity);
+    if (![expected, received, missing, damaged].every(Number.isSafeInteger) ||
+        expected < 1 || received < 0 || missing < 0 || damaged < 0 || damaged > received) {
+      return { error: "Miktarlar tam sayı olmalı; beklenen miktar en az 1 ve hasarlı miktar teslim alınandan fazla olamaz." };
+    }
+    if (status !== "CANCELLED" && received + missing !== expected) {
+      return { error: "Beklenen miktar, teslim alınan ve eksik miktarların toplamına eşit olmalıdır." };
+    }
+    if (status === "RECEIVED" && missing > 0) {
+      return { error: "Eksik ürün varsa durum olarak Kısmi Alındı seçin." };
+    }
+    if (status === "PARTIAL" && missing === 0) {
+      return { error: "Eksik miktar yoksa durum olarak Tam Alındı seçin." };
+    }
   }
 
   try {
@@ -78,7 +101,7 @@ export async function createGoodsReceiptAction(
           where: { id: it.productId, tenantId: tenant.id },
           select: { id: true },
         });
-        if (!product) continue;
+        if (!product) throw new Error("Seçilen ürünlerden biri bu işletmede bulunamadı.");
 
         const receivedQuantity = Math.max(0, toInt(String(it.receivedQuantity ?? 0), 0));
         const expectedQuantity = Math.max(0, toInt(String(it.expectedQuantity ?? 0), 0));
