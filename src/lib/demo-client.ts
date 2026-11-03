@@ -402,7 +402,7 @@ function defaultsFor(model: string): Row {
   const base: Row = { createdAt: time, updatedAt: time };
   switch (model) {
     case "user":
-      return { ...base, isPlatformAdmin: false, passwordHash: null, name: "" };
+      return { ...base, isPlatformAdmin: false, isSuspended: false, passwordHash: null, name: "" };
     case "tenant":
       return { ...base, status: "ACTIVE" };
     case "membership":
@@ -431,6 +431,12 @@ function defaultsFor(model: string): Row {
       return { ...base, userId: null, entityId: null };
     case "payment":
       return { ...base, status: "PENDING", description: null, paidAt: null };
+    case "featureFlag":
+      return { ...base, enabled: false, category: "product", updatedBy: null };
+    case "platformAuditLog":
+      return { ...base, actorId: null, targetId: null, reason: null, beforeData: null, afterData: null };
+    case "supportTicket":
+      return { ...base, createdById: null, status: "OPEN", priority: "NORMAL", resolutionNote: null };
     case "session":
       return { ...base, activeTenantId: null };
     default:
