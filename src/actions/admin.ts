@@ -268,7 +268,7 @@ export async function setFeatureFlagAction(formData: FormData): Promise<void> {
   if (!existing || existing.enabled === enabled) return;
   await prisma.featureFlag.update({
     where: { id },
-    data: { enabled, updatedBy: admin.user.id },
+    data: { enabled, updatedBy: admin.user.id, updatedAt: new Date() },
   });
   await prisma.platformAuditLog.create({
     data: {
@@ -326,7 +326,7 @@ export async function updateSupportTicketAction(formData: FormData): Promise<voi
   const updated = await withTenant(ticket.tenantId, async (tx) => {
     const result = await tx.supportTicket.update({
       where: { id },
-      data: { status, resolutionNote: resolutionNote || null },
+      data: { status, resolutionNote: resolutionNote || null, updatedAt: new Date() },
     });
     await tx.auditLog.create({
       data: {
