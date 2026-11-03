@@ -108,9 +108,22 @@ export default async function ShopPage({
   if (!data) notFound();
 
   const whatsapp = normalizeWhatsAppNumber(data.settings?.whatsapp ?? "");
+  const theme = data.settings?.theme ?? "default";
+  const pageBackground =
+    theme === "modern"
+      ? "bg-gradient-to-br from-slate-100 via-purple-50 to-white"
+      : theme === "minimal"
+        ? "bg-white"
+        : "bg-secondary";
+  const headerStyle =
+    theme === "modern"
+      ? "border-purple-100 bg-white shadow-lg"
+      : theme === "minimal"
+        ? "border-transparent bg-white shadow-none"
+        : "border-border bg-card";
 
   return (
-    <div className="min-h-screen bg-secondary">
+    <div className={`min-h-screen ${pageBackground}`}>
       <div className="mx-auto max-w-5xl px-4 py-6 md:px-6 md:py-8">
         <nav className="mb-6 flex items-center justify-between">
           <Link href="/" className="inline-flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent">← Tiverto</Link>
@@ -141,7 +154,7 @@ export default async function ShopPage({
           </div>
         )}
 
-        <header className="mb-8 rounded-2xl border border-border bg-card p-6 text-center">
+        <header className={`mb-8 rounded-2xl border p-6 text-center ${headerStyle}`}>
           {data.settings?.coverUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -223,7 +236,7 @@ export default async function ShopPage({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data.products.length > 0 ? (
             data.products.map((p) => (
-              <Card key={p.id} className="flex h-full flex-col">
+              <Card key={p.id} className={`flex h-full flex-col ${theme === "minimal" ? "border-0 shadow-none" : theme === "modern" ? "border-purple-100 shadow-md" : ""}`}>
                 <CardContent className="flex flex-1 flex-col p-4">
                   {p.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
