@@ -13,6 +13,9 @@ import {
   X,
   ArrowLeftRight,
   Users,
+  Flag,
+  LifeBuoy,
+  Activity,
 } from "lucide-react";
 import { classNames } from "./ui/utils";
 
@@ -22,6 +25,9 @@ const NAV = [
   { name: "Kullanıcılar", href: "/admin/users", icon: Users },
   { name: "Planlar", href: "/admin/plans", icon: CreditCard },
   { name: "Ödemeler", href: "/admin/payments", icon: CreditCard },
+  { name: "Özellikler", href: "/admin/features", icon: Flag },
+  { name: "Destek", href: "/admin/support", icon: LifeBuoy },
+  { name: "Sistem", href: "/admin/health", icon: Activity },
   { name: "Kayıtlar", href: "/admin/logs", icon: ScrollText },
 ];
 
