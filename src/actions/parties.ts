@@ -1,14 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireTenantContext } from "@/lib/session.server";
+import { requireWritableTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
 import { optionalStr, str } from "@/lib/validation";
 
 // ---------- Müşteriler ----------
 
 export async function createCustomerAction(formData: FormData): Promise<void> {
-  const { tenant } = await requireTenantContext();
+  const { tenant } = await requireWritableTenantContext();
   const name = str(formData, "name");
   if (!name) return;
 
@@ -28,7 +28,7 @@ export async function createCustomerAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteCustomerAction(formData: FormData): Promise<void> {
-  const { tenant } = await requireTenantContext();
+  const { tenant } = await requireWritableTenantContext();
   const id = str(formData, "id");
   if (!id) return;
 
@@ -47,7 +47,7 @@ export async function deleteCustomerAction(formData: FormData): Promise<void> {
 // ---------- Tedarikçiler ----------
 
 export async function createSupplierAction(formData: FormData): Promise<void> {
-  const { tenant } = await requireTenantContext();
+  const { tenant } = await requireWritableTenantContext();
   const name = str(formData, "name");
   if (!name) return;
 
@@ -68,7 +68,7 @@ export async function createSupplierAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteSupplierAction(formData: FormData): Promise<void> {
-  const { tenant } = await requireTenantContext();
+  const { tenant } = await requireWritableTenantContext();
   const id = str(formData, "id");
   if (!id) return;
 
