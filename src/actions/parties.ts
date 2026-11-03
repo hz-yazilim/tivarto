@@ -28,20 +28,37 @@ export async function createCustomerAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteCustomerAction(formData: FormData): Promise<void> {
-  const { tenant } = await requireWritableTenantContext();
+  const { tenant, user } = await requireWritableTenantContext();
   const id = str(formData, "id");
   if (!id) return;
 
   await withTenant(tenant.id, async (tx) => {
-    // Siparişi olan müşteri silinmez; siparişlerin müşteri bağlantısı kopar.
+    const customer = await tx.customer.findFirst({
+      where: { id, tenantId: tenant.id },
+      select: { id: true, name: true },
+    });
+    if (!customer) return;
+
+    // Sipariş geçmişi korunur; yalnızca müşteri kartı bağlantısı kaldırılır.
     await tx.order.updateMany({
       where: { customerId: id, tenantId: tenant.id },
       data: { customerId: null },
     });
     await tx.customer.deleteMany({ where: { id, tenantId: tenant.id } });
+    await tx.auditLog.create({
+      data: {
+        tenantId: tenant.id,
+        userId: user.id,
+        action: "customer.deleted",
+        entity: "Customer",
+        entityId: id,
+        details: `Müşteri kartı silindi: ${customer.name}`,
+      },
+    });
   });
 
   revalidatePath("/panel/customers");
+  revalidatePath("/panel/orders");
 }
 
 // ---------- Tedarikçiler ----------
@@ -68,17 +85,34 @@ export async function createSupplierAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteSupplierAction(formData: FormData): Promise<void> {
-  const { tenant } = await requireWritableTenantContext();
+  const { tenant, user } = await requireWritableTenantContext();
   const id = str(formData, "id");
   if (!id) return;
 
   await withTenant(tenant.id, async (tx) => {
+    const supplier = await tx.supplier.findFirst({
+      where: { id, tenantId: tenant.id },
+      select: { id: true, name: true },
+    });
+    if (!supplier) return;
+
     await tx.goodsReceipt.updateMany({
       where: { supplierId: id, tenantId: tenant.id },
       data: { supplierId: null },
     });
     await tx.supplier.deleteMany({ where: { id, tenantId: tenant.id } });
+    await tx.auditLog.create({
+      data: {
+        tenantId: tenant.id,
+        userId: user.id,
+        action: "supplier.deleted",
+        entity: "Supplier",
+        entityId: id,
+        details: `Tedarikçi kartı silindi: ${supplier.name}`,
+      },
+    });
   });
 
   revalidatePath("/panel/suppliers");
+  revalidatePath("/panel/receipts");
 }
