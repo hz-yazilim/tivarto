@@ -229,5 +229,17 @@ export function buildDemoStore(): DemoStore {
       { id: "demo-pay-03", tenantId: T2, amount: 399, status: "PAID", description: "Ekim 2026 abonelik", paidAt: ago(28), createdAt: ago(28) },
       { id: "demo-pay-04", tenantId: T3, amount: 1499, status: "PENDING", description: "Ekim 2026 abonelik", paidAt: null, createdAt: ago(20) },
     ],
+    featureFlag: [
+      { id: "demo-flag-01", key: "new_inventory", name: "Yeni stok deneyimi", description: "Gelişmiş stok hareketleri ekranı", enabled: true, category: "product", updatedAt: ago(2), updatedBy: "system" },
+      { id: "demo-flag-02", key: "beta_reports", name: "Gelişmiş raporlar", description: "Yeni rapor ekranları için kontrollü erişim", enabled: false, category: "product", updatedAt: ago(1), updatedBy: "system" },
+      { id: "demo-flag-03", key: "maintenance_mode", name: "Bakım modu", description: "Yeni işletme işlemlerini geçici olarak sınırlar; uygulamada ayrıca kontrol edilmelidir", enabled: false, category: "operations", updatedAt: ago(4), updatedBy: "system" },
+    ],
+    platformAuditLog: [
+      { id: "demo-pa-01", actorId: DEMO_USERS.admin.id, action: "tenant.status.suspended", targetType: "Tenant", targetId: T3, reason: "Örnek denetim kaydı", beforeData: { status: "ACTIVE" }, afterData: { status: "SUSPENDED" }, createdAt: ago(3) },
+    ],
+    supportTicket: [
+      { id: "demo-ticket-01", tenantId: T, createdById: DEMO_USERS.business.id, subject: "Ürün fotoğrafı yüklenmiyor", description: "Ürün düzenleme ekranında görsel ekleyemiyorum.", status: "OPEN", priority: "NORMAL", resolutionNote: null, createdAt: ago(1), updatedAt: ago(1) },
+      { id: "demo-ticket-02", tenantId: T2, createdById: DEMO_USERS.business.id, subject: "Vitrin adresi hakkında", description: "Mağaza bağlantımı değiştirmek istiyorum.", status: "IN_PROGRESS", priority: "HIGH", resolutionNote: null, createdAt: ago(2), updatedAt: ago(1) },
+    ],
   };
 }
