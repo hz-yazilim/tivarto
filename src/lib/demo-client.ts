@@ -54,6 +54,7 @@ const RELATIONS: Record<string, Record<string, Relation>> = {
   user: {
     memberships: { model: "membership", kind: "many", refFk: "userId" },
     sessions: { model: "session", kind: "many", refFk: "userId" },
+    supportTickets: { model: "supportTicket", kind: "many", refFk: "createdById" },
   },
   session: { user: { model: "user", kind: "one", fk: "userId" } },
   tenant: {
