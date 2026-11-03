@@ -48,7 +48,8 @@ panelinden (`/admin`) işletmeleri, paketleri ve ödemeleri yönetir.
 - Müşteri ve tedarikçi kayıtları
 - Sipariş yönetimi + durum takibi (iptalde stok geri eklenir)
 - Herkese açık vitrin, sepet, sipariş oluşturma, WhatsApp sipariş özeti
-- Merkez yönetim paneli (işletmeler, planlar, ödemeler, denetim kayıtları)\n- Satış raporları (30 günlük ciro, tahmini brüt kâr, 7 günlük trend, çok satan ürünler, kritik stok ve CSV dışa aktarma)
+- Merkez yönetim paneli (işletmeler, planlar, ödemeler, denetim kayıtları)
+- Satış raporları (30 günlük ciro, tahmini brüt kâr, 7 günlük trend, çok satan ürünler, kritik stok ve CSV dışa aktarma)
 - RLS ile işletmeler arası veri izolasyonu (fail-closed)
 - Mobil uyumlu arayüzler
 - Örnek/demo veri ve doğrulanmayan giriş varsayılan olarak kapalıdır.
@@ -125,7 +126,8 @@ npm run dev                     # http://localhost:3000
 | `DIRECT_URL` | ✅ | Migration/RLS için doğrudan bağlantı (yönetici kullanıcı) |
 | `NEXT_PUBLIC_ROOT_DOMAIN` | ➖ | Vitrin subdomain kökü (`tiverto.app`). Boşsa subdomain yönlendirme kapalıdır; vitrin `/shop/[slug]` üzerinden çalışır |
 | `DEMO_MODE` | ➖ | Yalnızca `true` olduğunda demo modu açılır; varsayılan kapalıdır |
-| `BOOTSTRAP_ADMIN_EMAIL` | ➖ | İlk platform yöneticisinin e-posta adresi |\n| `BOOTSTRAP_ADMIN_PASSWORD` | ➖ | İlk platform yöneticisi için tek seferlik, en az 14 karakterli parola |
+| `BOOTSTRAP_ADMIN_EMAIL` | ➖ | İlk platform yöneticisinin e-posta adresi |
+| `BOOTSTRAP_ADMIN_PASSWORD` | ➖ | İlk platform yöneticisi için tek seferlik, en az 14 karakterli parola |
 
 
 **Demo katmanı varsayılan olarak kapalıdır.** `DEMO_MODE=true` yalnızca izole yerel test ortamında kullanılmalıdır. Canlı ortamda demo modu açılmamalıdır.
