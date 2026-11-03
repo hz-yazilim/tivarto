@@ -94,6 +94,7 @@ model Session {
 
   @@index([userId])
   @@index([token])
+  @@index([expiresAt])
 }
 
 // ---------- Tenant verisi (tenantId'li + RLS) ----------
@@ -272,6 +273,7 @@ model GoodsReceiptItem {
   product Product @relation(fields: [productId], references: [id])
 
   @@index([tenantId, receiptId])
+  @@index([receiptId])
 }
 
 model Order {
@@ -306,6 +308,7 @@ model OrderItem {
   product Product @relation(fields: [productId], references: [id])
 
   @@index([tenantId, orderId])
+  @@index([orderId])
 }
 
 model AuditLog {
@@ -384,4 +387,5 @@ model SupportTicket {
 
   @@index([tenantId, createdAt])
   @@index([status, priority, createdAt])
+  @@index([createdById])
 }
