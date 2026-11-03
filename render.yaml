@@ -1,6 +1,6 @@
 # Render Blueprint — Tiverto
-# Not: Render'ın geçici disk'i KALICI veri için kullanılmaz.
-# Kalıcı veriler yönetilen PostgreSQL'de tutulur (aşağıdaki veritabanı).
+# Gelistirme önizlemesi: DB olmadan bellek içi sahte veriyle açılır.
+# Kalıcı veritabanı bağlandığında aşağıdaki iki demo değişkenini false yapın.
 services:
   - type: web
     name: tiverto
@@ -8,9 +8,8 @@ services:
     plan: free
     region: frankfurt
     buildCommand: npm ci && npm run build
-    # Migration'lar her başlatmada çalışır (idempotent); build aşamasında
-    # veritabanına erişim olmayabilir, bu yüzden start'a bağlandı.
-    startCommand: npm run db:migrate:deploy && npm run db:rls && npm run start
+    # start.mjs demo modunda migration/RLS adımlarını atlar.
+    startCommand: npm run start
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
@@ -29,8 +28,9 @@ services:
       - key: NEXT_PUBLIC_ROOT_DOMAIN
         sync: false
       - key: DEMO_MODE
-        value: "false"
-      # Demo girişi ve örnek veri canlı ortamda kapalıdır.
+        value: "true"
+      - key: DEMO_FAKE_DATA
+        value: "true"
 
 databases:
   - name: tiverto-db
