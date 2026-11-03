@@ -3,7 +3,6 @@ generator client {
   // Rust'suz istemci: native query engine ikilisi indirilmez/kullanılmaz.
   // Sorgular WASM query compiler + @prisma/adapter-pg üzerinden çalışır.
   engineType      = "client"
-  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
