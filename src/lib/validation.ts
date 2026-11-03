@@ -17,16 +17,28 @@ export function optionalStr(formData: FormData, key: string): string | undefined
   return value.length > 0 ? value : undefined;
 }
 
-/** "1.234,50" / "1234.50" gibi girdileri sayıya çevirir. */
+/**
+ * Türkçe ve uluslararası fiyat girişlerini güvenli biçimde sayıya çevirir.
+ * 1.234,50 -> 1234.50 | 1234.50 -> 1234.50 | 1234,50 -> 1234.50
+ * Tek nokta ondalık ayraç kabul edilir; yalnızca açık binlik gruplama
+ * biçimindeki birden çok nokta binlik ayraç sayılır.
+ */
 export function toNumber(raw: string | undefined): number | undefined {
   if (!raw) return undefined;
-  const normalized = raw.replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
-  // "1.234" gibi binlik ayraçlı olmayan ondalıkları da destekle
-  const fallback = raw.replace(",", ".");
-  const value = Number(normalized);
-  if (!Number.isNaN(value)) return value;
-  const parsedFallback = Number(fallback);
-  return Number.isNaN(parsedFallback) ? undefined : parsedFallback;
+  const value = raw.trim().replace(/\s/g, "");
+  if (!value) return undefined;
+
+  let normalized = value;
+  if (value.includes(",") && value.includes(".")) {
+    normalized = value.replace(/\./g, "").replace(",", ".");
+  } else if (value.includes(",")) {
+    normalized = value.replace(",", ".");
+  } else if (/^-?\d{1,3}(\.\d{3}){1,}$/.test(value)) {
+    normalized = value.replace(/\./g, "");
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 export function toInt(raw: string | undefined, fallback = 0): number {
