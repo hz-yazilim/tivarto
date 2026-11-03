@@ -440,6 +440,8 @@ export async function updateTenantMemberRoleAction(formData: FormData): Promise<
   if (!membershipId || (role !== "OWNER" && role !== "STAFF") || reason.length < 5) return;
 
   await withTenant(context.tenant.id, async (tx) => {
+    // Son sahip korumasında eşzamanlı rol değişikliklerini sıraya al.
+    await tx.$queryRaw`SELECT id FROM "Tenant" WHERE id = ${context.tenant.id} FOR UPDATE`;
     const member = await tx.membership.findFirst({
       where: { id: membershipId, tenantId: context.tenant.id },
     });
@@ -474,6 +476,8 @@ export async function removeTenantMemberAction(formData: FormData): Promise<void
   await prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT set_config('app.platform', ${"on"}, true)`;
     await tx.$executeRaw`SELECT set_config('app.tenant_id', ${context.tenant.id}, true)`;
+    // Son işletme sahibinin eşzamanlı iki işlemle kaldırılmasını önle.
+    await tx.$queryRaw`SELECT id FROM "Tenant" WHERE id = ${context.tenant.id} FOR UPDATE`;
 
     const member = await tx.membership.findFirst({
       where: { id: membershipId, tenantId: context.tenant.id },
