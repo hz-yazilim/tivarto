@@ -27,7 +27,9 @@ let appPassword = "";
 
 try {
   const parsedRuntimeUrl = new URL(runtimeUrl);
-  if (decodeURIComponent(parsedRuntimeUrl.username) !== appUser) {
+  // Supabase pooler kullanıcı adını "rol.proje-ref" biçiminde sunabilir.
+  const runtimeUsername = decodeURIComponent(parsedRuntimeUrl.username);
+  if (runtimeUsername !== appUser && !runtimeUsername.startsWith(`${appUser}.`)) {
     throw new Error("DATABASE_URL uygulama rolüyle eşleşmiyor.");
   }
   appPassword = decodeURIComponent(parsedRuntimeUrl.password);
