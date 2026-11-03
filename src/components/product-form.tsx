@@ -258,7 +258,7 @@ export function ProductDeleteForm({ id }: { id: string }) {
       <ConfirmSubmitButton
                       variant="destructive"
                       size="sm"
-                      message="Bu ürünü silmek istediğinize emin misiniz? Siparişi olan ürünler silinmez, pasife alınır."
+                      message="Bu ürünü silmek istediğinize emin misiniz? Sipariş, mal kabul veya stok hareketi geçmişi olan ürünler silinmez; pasife alınır."
                     >
         Sil
       </ConfirmSubmitButton>
