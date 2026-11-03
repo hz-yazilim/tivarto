@@ -32,7 +32,7 @@ function detectImageExtension(buffer: Buffer): string | null {
 export async function POST(req: Request) {
   try {
     // Görsel yükleme yalnızca aktif işletme oturumu olan kullanıcılara açık.
-    let context;
+    let context: Awaited<ReturnType<typeof getTenantContext>>;
     try {
       context = await getTenantContext();
     } catch {
