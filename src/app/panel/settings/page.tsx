@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const { tenant } = await getTenantContext();
-  const settings = await getSettingsAction(tenant.id);
+  const settings = await getSettingsAction();
 
   return (
     <div className="space-y-6">
