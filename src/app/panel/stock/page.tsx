@@ -16,8 +16,13 @@ const MOVEMENT_OPTIONS = [
 const selectClass =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-export default async function StockPage() {
+export default async function StockPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const { tenant } = await getTenantContext();
+  const { error } = await searchParams;
 
   const data = await withTenant(tenant.id, async (tx) => {
     const [products, movements] = await Promise.all([
@@ -50,6 +55,12 @@ export default async function StockPage() {
           Stok giriş-çıkış kayıtlarını tutun ve sayım sonucu düzeltme yapın.
         </p>
       </div>
+
+      {error && (
+        <div role="alert" className="rounded-lg border border-red-300/30 bg-red-500/10 p-4 text-sm text-red-200">
+          {error}
+        </div>
+      )}
 
       {data.products.length === 0 && (
         <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
