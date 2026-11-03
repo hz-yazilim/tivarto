@@ -17,9 +17,12 @@ export default async function PaymentsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Yeni Ödeme Kaydı Ekle</CardTitle>
+          <CardTitle className="text-base">Manuel Tahsilat Kaydı</CardTitle>
         </CardHeader>
         <CardContent className="p-5 pt-0">
+          <p className="mb-4 rounded-lg border border-amber-400/20 bg-amber-400/10 p-3 text-sm text-amber-100">
+            Bu form ödeme almaz. Banka/havale gibi dışarıda gerçekleşen tahsilatı panele manuel olarak kaydeder.
+          </p>
           <form action={createPaymentAction} className="grid items-end gap-3 md:grid-cols-4">
             <div className="space-y-1 md:col-span-2">
               <Label htmlFor="tenantId">İşletme</Label>
