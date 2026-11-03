@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { withPlatform } from "@/lib/db";
 import { requirePlatformAdmin } from "@/lib/session.server";
 
 export const runtime = "nodejs";
@@ -11,10 +11,10 @@ function csv(value: unknown): string {
 
 export async function GET() {
   await requirePlatformAdmin();
-  const rows = await prisma.platformAuditLog.findMany({
+  const rows = await withPlatform((tx) => tx.platformAuditLog.findMany({
     orderBy: { createdAt: "desc" },
     take: 2000,
-  });
+  }));
   const header = ["Tarih (UTC)", "Yönetici ID", "İşlem", "Hedef türü", "Hedef ID", "Gerekçe", "Önce", "Sonra"];
   const lines = rows.map((row) => [
     row.createdAt, row.actorId, row.action, row.targetType, row.targetId,
