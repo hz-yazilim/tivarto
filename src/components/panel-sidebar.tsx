@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   Store,
+  LifeBuoy,
 } from "lucide-react";
 import { classNames } from "./ui/utils";
 
@@ -29,6 +30,7 @@ const NAV = [
   { name: "Müşteriler", href: "/panel/customers", icon: Users },
   { name: "Tedarikçiler", href: "/panel/suppliers", icon: Building2 },
   { name: "Siparişler", href: "/panel/orders", icon: ShoppingCart },
+  { name: "Destek", href: "/panel/support", icon: LifeBuoy },
   { name: "Ayarlar", href: "/panel/settings", icon: Settings },
 ];
 
