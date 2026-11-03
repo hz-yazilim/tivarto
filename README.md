@@ -1,8 +1,8 @@
-# Tiverto
+# Tivarto
 
 > **İşletmeni yönet, ticaretini büyüt.**
 
-Tiverto; küçük ve orta ölçekli işletmelerin ürünlerini, stoklarını, müşterilerini,
+Tivarto; küçük ve orta ölçekli işletmelerin ürünlerini, stoklarını, müşterilerini,
 tedarikçilerini ve siparişlerini tek bir platform üzerinden yönetebilmesi için
 geliştirilen **bulut tabanlı işletme yönetim platformudur**.
 
@@ -393,4 +393,4 @@ src/
 
 ---
 
-Tiverto — **İşletmeni yönet, ticaretini büyüt.**
+Tivarto — **İşletmeni yönet, ticaretini büyüt.**
