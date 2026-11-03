@@ -62,9 +62,19 @@ async function main() {
       console.log(`= ${appUser} rolü zaten var, yetkileri güncelleniyor.`);
     }
 
-    // Supabase'in kısıtlı CREATEROLE yetkisi mevcut rollerin parolasını
-    // ALTER ROLE ile değiştirmeye izin vermeyebilir. Parola yalnızca rol
-    // ilk oluşturulurken atanır; mevcut rolün parolasına dokunulmaz.
+    // Supabase'in kısıtlı CREATEROLE rolü başka bir rolün parolasını
+    // doğrudan değiştiremeyebilir. Uygulama rolüne SET izni verildiğinde
+    // kendi parolasını kendisi değiştirebilir.
+    await client.query(`SET ROLE "${appUser}"`);
+    try {
+      const { rows: passwordSql } = await client.query(
+        `SELECT format('ALTER ROLE CURRENT_USER WITH PASSWORD %L', $1::text) AS sql`,
+        [appPassword]
+      );
+      await client.query(passwordSql[0].sql);
+    } finally {
+      await client.query("RESET ROLE");
+    }
 
     // Yetkiler (idempotent). Tanımlayıcılar format(%I) ile kaçırılır.
     const grants = [
