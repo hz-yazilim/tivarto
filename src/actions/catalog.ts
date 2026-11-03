@@ -31,6 +31,23 @@ export async function createProductAction(
   const buyPrice = toNumber(str(formData, "buyPrice"));
   if (buyPrice !== undefined && buyPrice < 0) return { error: "Alış fiyatı negatif olamaz." };
 
+  const categoryId = optionalStr(formData, "categoryId") ?? null;
+  if (categoryId) {
+    const categoryExists = await withTenant(tenant.id, (tx) =>
+      tx.category.findFirst({ where: { id: categoryId, tenantId: tenant.id }, select: { id: true } })
+    );
+    if (!categoryExists) return { error: "Seçilen kategori bu işletmede bulunamadı." };
+  }
+  const imageUrl = optionalStr(formData, "imageUrl");
+  if (imageUrl && !imageUrl.startsWith("/uploads/")) {
+    try {
+      const parsed = new URL(imageUrl);
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return { error: "Görsel bağlantısı http:// veya https:// olmalıdır." };
+    } catch {
+      return { error: "Geçerli bir görsel bağlantısı girin." };
+    }
+  }
+
   const stock = Math.max(0, toInt(str(formData, "stock"), 0));
 
   const created = await withTenant(tenant.id, async (tx) => {
@@ -43,10 +60,10 @@ export async function createProductAction(
     const product = await tx.product.create({
       data: {
         tenantId: tenant.id,
-        categoryId: optionalStr(formData, "categoryId") ?? null,
+        categoryId,
         name,
         description: optionalStr(formData, "description"),
-        imageUrl: optionalStr(formData, "imageUrl"),
+        imageUrl,
         barcode: optionalStr(formData, "barcode"),
         sku: optionalStr(formData, "sku"),
         buyPrice: buyPrice ?? null,
@@ -105,6 +122,22 @@ export async function updateProductAction(
   if (sellPrice === undefined || sellPrice < 0) return { error: "Sıfır veya daha yüksek geçerli bir satış fiyatı girin." };
   const buyPrice = toNumber(str(formData, "buyPrice"));
   if (buyPrice !== undefined && buyPrice < 0) return { error: "Alış fiyatı negatif olamaz." };
+  const categoryId = formData.has("categoryId") ? (optionalStr(formData, "categoryId") ?? null) : undefined;
+  if (categoryId) {
+    const categoryExists = await withTenant(tenant.id, (tx) =>
+      tx.category.findFirst({ where: { id: categoryId, tenantId: tenant.id }, select: { id: true } })
+    );
+    if (!categoryExists) return { error: "Seçilen kategori bu işletmede bulunamadı." };
+  }
+  const imageUrl = optionalStr(formData, "imageUrl");
+  if (imageUrl && !imageUrl.startsWith("/uploads/")) {
+    try {
+      const parsed = new URL(imageUrl);
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return { error: "Görsel bağlantısı http:// veya https:// olmalıdır." };
+    } catch {
+      return { error: "Geçerli bir görsel bağlantısı girin." };
+    }
+  }
 
   const missing = await withTenant(tenant.id, async (tx) => {
     const product = await tx.product.findFirst({
@@ -117,12 +150,10 @@ export async function updateProductAction(
       where: { id, tenantId: tenant.id },
       data: {
         // Boş seçim ("") kategoriyi kaldırır; alan hiç gönderilmediyse korunur.
-        categoryId: formData.has("categoryId")
-          ? (optionalStr(formData, "categoryId") ?? null)
-          : undefined,
+        categoryId,
         name,
         description: optionalStr(formData, "description") ?? null,
-        imageUrl: optionalStr(formData, "imageUrl") ?? null,
+        imageUrl: imageUrl ?? null,
         barcode: optionalStr(formData, "barcode") ?? null,
         sku: optionalStr(formData, "sku") ?? null,
         buyPrice: buyPrice ?? null,
