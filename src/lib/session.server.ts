@@ -154,6 +154,6 @@ export async function requireWritableTenantContext(): Promise<TenantContext> {
 export async function requirePlatformAdmin(): Promise<ValidSession> {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (!session.user.isPlatformAdmin) redirect("/panel");
+  if (!session.user.isPlatformAdmin) redirect("/login?callbackUrl=%2Fadmin");
   return session;
 }

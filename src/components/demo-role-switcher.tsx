@@ -22,17 +22,19 @@ export default async function DemoRoleSwitcher({
   callbackUrl = "",
   compact = false,
   includeAdmin = false,
+  adminOnly = false,
 }: {
   callbackUrl?: string;
   compact?: boolean;
   includeAdmin?: boolean;
+  adminOnly?: boolean;
 }) {
   if (!DEMO_ACTIVE) return null;
 
   const cookieStore = await cookies();
   const current = cookieStore.get(DEMO_ROLE_COOKIE)?.value;
   const email = cookieStore.get(DEMO_EMAIL_COOKIE)?.value;
-  const roles = includeAdmin ? ADMIN_ROLES : PUBLIC_ROLES;
+  const roles: DemoRole[] = adminOnly ? ["admin"] : includeAdmin ? ADMIN_ROLES : PUBLIC_ROLES;
 
   return (
     <div className={compact
@@ -45,7 +47,7 @@ export default async function DemoRoleSwitcher({
             Demo
           </span>
           <span className="text-xs font-medium text-zinc-200">
-            {includeAdmin ? "Demo panelleri arasında geçiş" : "Örnek hesabı seç"}
+            {adminOnly ? "Platform yöneticisi girişi" : includeAdmin ? "Demo panelleri arasında geçiş" : "Örnek hesabı seç"}
           </span>
         </div>
         {email && (

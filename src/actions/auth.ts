@@ -13,8 +13,6 @@ import {
 } from "@/lib/auth";
 import {
   demoDestination,
-  inferDemoRole,
-  isDemoRole,
   isValidSlug,
   SESSION_COOKIE_NAME,
 } from "@/lib/constants";
@@ -61,19 +59,13 @@ export async function loginAction(
   }
 
   /**
-   * DEMO MODU (veritabanı bağlantısı kurulana kadar):
-   * Girilen e-posta/şifre doğrulanmaz; seçilen (veya e-postadan tahmin edilen)
-   * rol için örnek hesapla oturum açılır. Böylece admin, işletme ve müşteri
-   * panellerinin üçü de gezilebilir. Veritabanı bağlandığında `DEMO_ACTIVE`
-   * otomatik olarak kapanır ve aşağıdaki gerçek doğrulama yolu çalışır.
+   * DB'siz önizleme yalnızca platform yönetim ekranını açar.
+   * Gerçek kimlik doğrulama etkinleştirildiğinde bu geçici yol kapanır.
    */
   if (DEMO_ACTIVE) {
-    const rawRole = str(formData, "role");
-    const role = isDemoRole(rawRole)
-      ? rawRole
-      : inferDemoRole(email, str(formData, "callbackUrl"));
-    await startDemoSession(role, email);
-    redirect(demoDestination(role, formData.get("callbackUrl")));
+    // DB'siz önizleme yalnızca platform yöneticisi panelini açar.
+    await startDemoSession("admin", email);
+    redirect("/admin");
   }
 
   const user = await prisma.user.findUnique({ where: { email } });
@@ -105,14 +97,11 @@ export async function loginAction(
   redirect(user.isPlatformAdmin ? "/admin" : "/panel");
 }
 
-/**
- * Demo panelleri arasında tek tıkla geçiş (ör. işletme panelindeyken admin
- * paneline geçmek için). Sadece `DEMO_ACTIVE` iken çalışır.
- */
+/** DB'siz önizlemede tek izin verilen demo oturumu platform yöneticisidir. */
 export async function demoStartPanelSelectionAction(): Promise<void> {
   if (!DEMO_ACTIVE) redirect("/login");
-  await startDemoSession("business");
-  redirect("/panel-secimi");
+  await startDemoSession("admin");
+  redirect("/admin");
 }
 
 export async function demoSwitchRoleAction(formData: FormData): Promise<void> {
@@ -120,10 +109,10 @@ export async function demoSwitchRoleAction(formData: FormData): Promise<void> {
     redirect("/login");
   }
   const rawRole = str(formData, "role");
-  if (!isDemoRole(rawRole)) {
-    redirect("/login");
+  if (rawRole !== "admin") {
+    redirect("/login?callbackUrl=%2Fadmin");
   }
-  await startDemoSession(rawRole);
+  await startDemoSession("admin");
   redirect(demoDestination(rawRole, formData.get("callbackUrl")));
 }
 
@@ -131,6 +120,9 @@ export async function registerAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  if (DEMO_ACTIVE) {
+    return { error: "Demo önizlemesinde işletme kaydı kapalıdır. Platform yönetim panelini kullanın." };
+  }
   const maintenance = await prisma.featureFlag.findUnique({ where: { key: "maintenance_mode" }, select: { enabled: true } });
   if (maintenance?.enabled) return { error: "Yeni işletme kayıtları bakım süresince geçici olarak durdurulmuştur." };
 

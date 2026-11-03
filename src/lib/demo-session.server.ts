@@ -9,7 +9,6 @@ import {
   DEMO_EMAIL_COOKIE,
   DEMO_ROLE_COOKIE,
   DEMO_SESSION_COOKIE,
-  DEMO_TENANT_ID,
   DEMO_USERS,
   type DemoRole,
 } from "@/lib/constants";
@@ -54,10 +53,8 @@ export async function startDemoSession(
   if (previous) await destroySession(previous).catch(() => {});
 
   const user = DEMO_USERS[role];
-  // Demo modunda üç panelin de açılabilmesi için her oturuma örnek işletmeyi
-  // bağla (müşteri rolü dahil). Böylece tek girişle /admin, /panel, /musteri
-  // ve /shop/demo arasında serbestçe gezilebilir.
-  const token = await createSession(user.id, user.tenantId ?? DEMO_TENANT_ID);
+  // Platform yöneticisi oturumu herhangi bir işletmeye bağlanmaz.
+  const token = await createSession(user.id, user.tenantId);
 
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,

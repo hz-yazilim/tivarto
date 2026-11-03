@@ -1,10 +1,11 @@
 import Link from "next/link";
-import DemoRoleSwitcher from "@/components/demo-role-switcher";
 import { DEMO_ACTIVE } from "@/lib/demo-config";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default function PanelSecimiPage() {
+  if (DEMO_ACTIVE) redirect("/admin");
   return (
     <main className="relative mx-auto flex min-h-screen max-w-5xl items-center justify-center overflow-hidden px-4 py-12">
       <div aria-hidden="true" className="pointer-events-none absolute -left-32 top-10 h-72 w-72 rounded-full bg-purple-700/15 blur-3xl" />
@@ -19,25 +20,14 @@ export default function PanelSecimiPage() {
           </p>
         </div>
 
-        {DEMO_ACTIVE ? (
-          <div className="mx-auto max-w-3xl">
-            <div className="tiverto-glass rounded-2xl p-4 sm:p-6">
-              <DemoRoleSwitcher />
-            </div>
-            <p className="mt-4 text-center text-xs text-zinc-500">
-              Demo sürümünde üç paneli de örnek verilerle inceleyebilirsiniz.
-            </p>
-          </div>
-        ) : (
-          <div className="mx-auto max-w-md">
-            <Link href="/panel" className="tiverto-card group block rounded-2xl p-6 transition hover:-translate-y-1 hover:border-purple-400/40">
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-purple-300/15 bg-purple-500/10 text-3xl">🏪</div>
-              <h2 className="text-lg font-bold text-zinc-100">İşletme Paneli</h2>
-              <p className="mt-2 text-sm leading-6 text-zinc-400">Ürünlerinizi, stoklarınızı, siparişlerinizi ve mağazanızı yönetin.</p>
-              <span className="mt-5 inline-flex font-semibold text-purple-300">Panele geç →</span>
-            </Link>
-          </div>
-        )}
+        <div className="mx-auto max-w-md">
+          <Link href="/panel" className="tiverto-card group block rounded-2xl p-6 transition hover:-translate-y-1 hover:border-purple-400/40">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-purple-300/15 bg-purple-500/10 text-3xl">🏪</div>
+            <h2 className="text-lg font-bold text-zinc-100">İşletme Paneli</h2>
+            <p className="mt-2 text-sm leading-6 text-zinc-400">Ürünlerinizi, stoklarınızı, siparişlerinizi ve mağazanızı yönetin.</p>
+            <span className="mt-5 inline-flex font-semibold text-purple-300">Panele geç →</span>
+          </Link>
+        </div>
 
         <div className="mt-8 text-center">
           <Link href="/" className="text-sm text-zinc-500 transition hover:text-purple-300">← Ana sayfaya dön</Link>

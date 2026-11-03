@@ -11,7 +11,6 @@ import {
   LogOut,
   Menu,
   X,
-  ArrowLeftRight,
   Users,
   Flag,
   LifeBuoy,
@@ -62,13 +61,7 @@ export default function AdminSidebar() {
   );
 
   const footer = (
-    <div className="space-y-1 border-t border-border px-2 py-3">
-      <Link
-        href="/panel"
-        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-      >
-        <ArrowLeftRight className="h-5 w-5 shrink-0" /> İşletme Paneli
-      </Link>
+    <div className="border-t border-border px-2 py-3">
       <a
         href="/logout"
         className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
