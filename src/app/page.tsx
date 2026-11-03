@@ -78,9 +78,9 @@ export default function Home() {
             <div>
               <p className="text-xs font-bold uppercase tracking-[.18em] text-rose-300">KEŞFET</p>
               <h2 className="mt-1 text-xl font-bold">Demo panellerini deneyin</h2>
-              <p className="mt-1 text-sm leading-6 text-zinc-400">Örnek verilerle müşteri, işletme ve platform ekranlarını inceleyebilirsiniz.</p>
+              <p className="mt-1 text-sm leading-6 text-zinc-400">Örnek verilerle müşteri ve işletme ekranlarını inceleyebilirsiniz.</p>
             </div>
-            <span className="w-fit rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 text-xs text-amber-200">Demo sürümü</span>
+            <span className="w-fit rounded-full border border-purple-400/20 bg-purple-500/10 px-3 py-1.5 text-xs text-purple-200">Demo sürümü</span>
           </div>
           <div className="rounded-xl border border-white/10 bg-black/10 p-3 sm:p-4">
             <DemoRoleSwitcher />
@@ -89,7 +89,6 @@ export default function Home() {
             <Link href={`/shop/${DEMO_SHOP_SLUG}`} className="hover:text-purple-300">Müşteri vitrini →</Link>
             <Link href="/musteri" className="hover:text-purple-300">Siparişlerim →</Link>
             <Link href="/panel" className="hover:text-purple-300">İşletme paneli →</Link>
-            <Link href="/admin" className="hover:text-purple-300">Platform paneli →</Link>
           </div>
         </section>
       )}
