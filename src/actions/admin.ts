@@ -47,7 +47,7 @@ export async function adminDashboardStats() {
 export async function listPlatformUsers(search = "") {
   await requirePlatformAdmin();
   const query = search.trim().slice(0, 80);
-  return prisma.user.findMany({
+  return withPlatform((tx) => tx.user.findMany({
     where: query ? {
       OR: [
         { name: { contains: query, mode: "insensitive" } },
@@ -71,7 +71,7 @@ export async function listPlatformUsers(search = "") {
 
 export async function listTenants() {
   await requirePlatformAdmin();
-  return prisma.tenant.findMany({
+  return withPlatform((tx) => tx.tenant.findMany({
     orderBy: { createdAt: "desc" },
     include: {
       plan: true,
@@ -527,6 +527,7 @@ export async function deleteOrphanPlatformUserAction(formData: FormData): Promis
   if (!userId || userId === admin.user.id || reason.length < 5) return;
 
   await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT set_config('app.platform', ${"on"}, true)`;
     const target = await tx.user.findUnique({
       where: { id: userId },
       include: { memberships: { select: { id: true } } },
