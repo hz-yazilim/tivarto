@@ -45,12 +45,8 @@ export default function Home() {
           Tiverto ile günlük operasyonlarını sadeleştir, işine odaklan.
         </p>
         <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link href="/register">
-            <Button size="lg" className="tiverto-gradient h-12 w-full rounded-xl border-0 px-7 text-base font-semibold text-white shadow-xl shadow-purple-950/40 hover:opacity-90 sm:w-auto">Hemen Ücretsiz Başla <span className="ml-2">→</span></Button>
-          </Link>
-          <Link href="/login">
-            <Button size="lg" variant="outline" className="h-12 w-full rounded-xl border-white/15 bg-white/[0.03] px-7 text-base text-zinc-200 hover:bg-white/[0.08] sm:w-auto">Hesabıma Giriş Yap</Button>
-          </Link>
+          <Link href="/register" className="inline-flex h-12 w-full items-center justify-center rounded-xl tiverto-gradient px-7 text-base font-semibold text-white shadow-xl shadow-purple-950/40 transition hover:opacity-90 sm:w-auto">Hemen Ücretsiz Başla <span className="ml-2">→</span></Link>
+          <Link href="/login" className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-white/15 bg-white/[0.03] px-7 text-base text-zinc-200 transition hover:bg-white/[0.08] sm:w-auto">Hesabıma Giriş Yap</Link>
         </div>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-zinc-500">
           <span>✓ Kolay kullanım</span><span>✓ Tek panelden yönetim</span><span>✓ Mobil uyumlu deneyim</span>
