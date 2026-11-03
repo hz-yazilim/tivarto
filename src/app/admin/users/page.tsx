@@ -1,4 +1,5 @@
-import { listPlatformUsers } from "@/actions/admin";
+import { listPlatformUsers, setPlatformUserSuspensionAction } from "@/actions/admin";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,7 @@ export default async function AdminUsersPage({
                 <th className="px-5 py-4">Yetki</th>
                 <th className="px-5 py-4">Kayıt tarihi</th>
                 <th className="px-5 py-4 text-right">Oturum</th>
+                <th className="px-5 py-4">Hesap durumu</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -57,14 +59,23 @@ export default async function AdminUsersPage({
                   </td>
                   <td className="px-5 py-4 text-xs text-muted-foreground">{new Date(user.createdAt).toLocaleDateString("tr-TR")}</td>
                   <td className="px-5 py-4 text-right tabular-nums text-foreground">{user._count.sessions}</td>
+                  <td className="px-5 py-4">
+                    {user.isPlatformAdmin ? <span className="text-xs text-muted-foreground">Korunan yönetici hesabı</span> : <form action={setPlatformUserSuspensionAction} className="flex min-w-[190px] flex-col gap-2">
+                      <input type="hidden" name="userId" value={user.id} />
+                      <input type="hidden" name="suspended" value={String(!user.isSuspended)} />
+                      <input name="reason" minLength={5} maxLength={300} required placeholder="İşlem gerekçesi" className="h-8 rounded border border-input bg-background px-2 text-xs" />
+                      <SubmitButton size="sm" variant={user.isSuspended ? "default" : "destructive"}>{user.isSuspended ? "Hesabı etkinleştir" : "Hesabı askıya al"}</SubmitButton>
+                    </form>}
+                    <div className="mt-1 text-[10px] text-muted-foreground">{user.isSuspended ? "Askıya alınmış" : "Aktif"}</div>
+                  </td>
                 </tr>
               ))}
-              {users.length === 0 && <tr><td colSpan={5} className="px-5 py-12 text-center text-sm text-muted-foreground">Aramanızla eşleşen kullanıcı bulunamadı.</td></tr>}
+              {users.length === 0 && <tr><td colSpan={6} className="px-5 py-12 text-center text-sm text-muted-foreground">Aramanızla eşleşen kullanıcı bulunamadı.</td></tr>}
             </tbody>
           </table>
         </div>
       </div>
-      <p className="text-xs leading-5 text-muted-foreground">Bu ekran şimdilik salt okunurdur. Hesap devre dışı bırakma, rol değiştirme ve kalıcı silme işlemleri; güvenli oturum iptali ve denetim kaydı akışları tamamlanmadan açılmayacaktır.</p>
+      <p className="text-xs leading-5 text-muted-foreground">Askıya alma geri alınabilir ve mevcut oturumları iptal eder. Platform yöneticileri bu ekrandan değiştirilemez. Kalıcı silme ve yönetici rolü değişikliği ayrı, çok aşamalı güvenlik akışı gerektirdiği için kapalıdır.</p>
     </div>
   );
 }
