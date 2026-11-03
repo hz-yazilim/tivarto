@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireTenantContext } from "@/lib/session.server";
+import { requireWritableTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
 import { optionalStr, str, toInt, toNumber, type FormState } from "@/lib/validation";
 
@@ -22,7 +22,7 @@ export async function createProductAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { tenant, user } = await requireTenantContext();
+  const { tenant, user } = await requireWritableTenantContext();
 
   const name = str(formData, "name");
   const sellPrice = toNumber(str(formData, "sellPrice"));
@@ -82,7 +82,7 @@ export async function updateProductAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { tenant, user } = await requireTenantContext();
+  const { tenant, user } = await requireWritableTenantContext();
   const id = str(formData, "id");
   if (!id) return { error: "Ürün bulunamadı." };
 
@@ -136,7 +136,7 @@ export async function updateProductAction(
 }
 
 export async function deleteProductAction(formData: FormData): Promise<void> {
-  const { tenant } = await requireTenantContext();
+  const { tenant } = await requireWritableTenantContext();
   const id = str(formData, "id");
   if (!id) return;
 
@@ -163,7 +163,7 @@ export async function deleteProductAction(formData: FormData): Promise<void> {
 }
 
 export async function toggleProductAction(formData: FormData): Promise<void> {
-  const { tenant } = await requireTenantContext();
+  const { tenant } = await requireWritableTenantContext();
   const id = str(formData, "id");
   const active = str(formData, "isActive") === "true";
   if (!id) return;
@@ -181,7 +181,7 @@ export async function toggleProductAction(formData: FormData): Promise<void> {
 // ---------- Kategoriler ----------
 
 export async function createCategoryAction(formData: FormData): Promise<void> {
-  const { tenant } = await requireTenantContext();
+  const { tenant } = await requireWritableTenantContext();
   const name = str(formData, "name");
   if (!name) return;
 
@@ -199,7 +199,7 @@ export async function createCategoryAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteCategoryAction(formData: FormData): Promise<void> {
-  const { tenant } = await requireTenantContext();
+  const { tenant } = await requireWritableTenantContext();
   const id = str(formData, "id");
   if (!id) return;
 
