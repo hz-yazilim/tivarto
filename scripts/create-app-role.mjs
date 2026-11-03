@@ -22,25 +22,14 @@ import { Client } from "pg";
 
 const adminUrl = process.env.DIRECT_URL || process.env.DATABASE_URL || "";
 const appUser = process.env.APP_DB_USER || "tivarto_app";
-const runtimeUrl = process.env.DATABASE_URL || "";
-let appPassword = "";
-
-try {
-  const parsedRuntimeUrl = new URL(runtimeUrl);
-  // Supabase pooler kullanıcı adını "rol.proje-ref" biçiminde sunabilir.
-  const runtimeUsername = decodeURIComponent(parsedRuntimeUrl.username);
-  if (runtimeUsername !== appUser && !runtimeUsername.startsWith(`${appUser}.`)) {
-    throw new Error("DATABASE_URL uygulama rolüyle eşleşmiyor.");
-  }
-  appPassword = decodeURIComponent(parsedRuntimeUrl.password);
-  if (!appPassword) throw new Error("DATABASE_URL içinde parola bulunamadı.");
-} catch (error) {
-  console.error("HATA: DATABASE_URL uygulama rolü için geçerli bir PostgreSQL bağlantısı olmalıdır.", error.message);
-  process.exit(1);
-}
+const appPassword = process.env.APP_DB_PASSWORD || "";
 
 if (!adminUrl) {
   console.error("HATA: DIRECT_URL (yönetici bağlantısı) tanımlı değil.");
+  process.exit(1);
+}
+if (!appPassword) {
+  console.error("HATA: APP_DB_PASSWORD tanımlı değil.");
   process.exit(1);
 }
 if (!/^[a-z_][a-z0-9_]{2,30}$/.test(appUser)) {
@@ -68,20 +57,23 @@ async function main() {
       await client.query(createSql[0].sql);
       console.log(`✓ ${appUser} rolü oluşturuldu.`);
     } else {
-      console.log(`= ${appUser} rolü zaten var; DATABASE_URL parolasıyla eşitlenecek.`);
+      console.log(`= ${appUser} rolü zaten var; mevcut parola korunuyor.`);
     }
 
-    // Runtime bağlantısının kullandığı parola tek kaynak olarak DATABASE_URL'den
-    // alınır; böylece build sırasında rol parolası ile uygulama adresi ayrışmaz.
-    await client.query(`SET ROLE "${appUser}"`);
-    try {
-      const { rows: passwordSql } = await client.query(
-        `SELECT format('ALTER ROLE CURRENT_USER WITH PASSWORD %L', $1::text) AS sql`,
-        [appPassword]
-      );
-      await client.query(passwordSql[0].sql);
-    } finally {
-      await client.query("RESET ROLE");
+    // Parola yalnızca açıkça istendiğinde yenilenir. Her deploy'da döndürmek
+    // yayındaki eski function'ların bağlantısını kesebilir.
+    if (rows.length > 0 && process.env.ROTATE_APP_DB_PASSWORD === "true") {
+      await client.query(`SET ROLE "${appUser}"`);
+      try {
+        const { rows: passwordSql } = await client.query(
+          `SELECT format('ALTER ROLE CURRENT_USER WITH PASSWORD %L', $1::text) AS sql`,
+          [appPassword]
+        );
+        await client.query(passwordSql[0].sql);
+      } finally {
+        await client.query("RESET ROLE");
+      }
+      console.log(`✓ ${appUser} parolası kontrollü olarak yenilendi.`);
     }
 
     // Yetkiler (idempotent). Tanımlayıcılar format(%I) ile kaçırılır.
