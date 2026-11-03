@@ -29,7 +29,7 @@ services:
       - key: NEXT_PUBLIC_ROOT_DOMAIN
         sync: false
       - key: DEMO_MODE
-        value: "true"
+        value: "false"
       # Not: DATABASE_URL bu serviste tanımlı olduğu için demo giriş kolaylığı
       # (her şifreyi kabul etme) otomatik kapalıdır; yalnızca "Demo" etiketi görünür.
 
