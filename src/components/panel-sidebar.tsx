@@ -33,7 +33,7 @@ const NAV = [
   { name: "Siparişler", href: "/panel/orders", icon: ShoppingCart },
   { name: "Destek", href: "/panel/support", icon: LifeBuoy },
   { name: "Ekip", href: "/panel/team", icon: UserCog, ownerOnly: true },
-  { name: "Ayarlar", href: "/panel/settings", icon: Settings },
+  { name: "Ayarlar", href: "/panel/settings", icon: Settings, ownerOnly: true },
 ];
 
 export default function PanelSidebar({
