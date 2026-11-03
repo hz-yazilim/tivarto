@@ -84,7 +84,10 @@ async function resolveTenantContext(session: ValidSession): Promise<TenantContex
       where: { userId: session.user.id, tenantId: tenant.id },
       select: { role: true },
     });
-    return membership?.role ?? "STAFF";
+    if (!membership) {
+      throw new Error("Bu işletme için aktif üyeliğiniz bulunmuyor.");
+    }
+    return membership.role;
   });
 
   return { user: session.user, tenant, role };
