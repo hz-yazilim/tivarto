@@ -6,8 +6,6 @@ import { NextRequest, NextResponse } from "next/server";
  * sayfa/layout katmanında (Node.js runtime) doğrulanır.
  */
 import {
-  DEMO_ROLE_COOKIE,
-  DEMO_SESSION_COOKIE,
   RESERVED_SLUGS,
   SESSION_COOKIE_NAME,
 } from "./lib/constants";
@@ -94,21 +92,6 @@ export function middleware(req: NextRequest) {
   ) {
     url.pathname = "/login";
     url.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(url);
-  }
-
-  // Zaten giriş yapmış görünen kullanıcıyı login/register'dan kendi paneline
-  // yönlendir. Demo oturumunda rol çerezi hangi panelin açılacağını belirtir;
-  // gerçek oturumda varsayılan /panel'dir.
-  if (sessionToken && (pathname === "/login" || pathname === "/register")) {
-    const isDemo = req.cookies.get(DEMO_SESSION_COOKIE)?.value === "1";
-    const demoRole = isDemo ? req.cookies.get(DEMO_ROLE_COOKIE)?.value : null;
-    url.pathname =
-      demoRole === "admin"
-        ? "/admin"
-        : demoRole === "customer"
-          ? "/musteri"
-          : "/panel";
     return NextResponse.redirect(url);
   }
 
