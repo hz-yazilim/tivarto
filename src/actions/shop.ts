@@ -45,18 +45,18 @@ export async function createStorefrontOrderAction(
     return { error: "Sepet geçersiz." };
   }
 
-  cart = cart
-    .filter(
-      (line) =>
-        line &&
-        typeof line.productId === "string" &&
-        Number.isFinite(Number(line.quantity)) &&
-        Number(line.quantity) > 0
-    )
-    .map((line) => ({
-      productId: line.productId,
-      quantity: Math.min(999, toInt(String(line.quantity), 1)),
-    }));
+  // Aynı ürün sepet payload'ında birden fazla kez gelirse miktarları birleştir.
+  const merged = new Map<string, number>();
+  for (const line of cart) {
+    if (!line || typeof line.productId !== "string" || !line.productId) continue;
+    const quantity = Number(line.quantity);
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) continue;
+    merged.set(line.productId, (merged.get(line.productId) ?? 0) + quantity);
+  }
+  cart = Array.from(merged, ([productId, quantity]) => ({ productId, quantity }));
+  if (cart.some((line) => line.quantity > 999)) {
+    return { error: "Bir üründen tek siparişte en fazla 999 adet seçebilirsiniz." };
+  }
 
   if (cart.length === 0) {
     return { error: "Sepetinize en az bir ürün ekleyin." };
@@ -90,11 +90,6 @@ export async function createStorefrontOrderAction(
       for (const line of cart) {
         const product = byId.get(line.productId);
         if (!product) continue;
-        if (product.stock < line.quantity) {
-          throw new Error(
-            `"${product.name}" için yeterli stok yok (kalan: ${product.stock}).`
-          );
-        }
         const unitPrice = Number(product.sellPrice);
         total += unitPrice * line.quantity;
         lines.push({
@@ -175,10 +170,19 @@ export async function createStorefrontOrderAction(
           },
         });
 
-        await tx.product.update({
-          where: { id: product.id },
+        // Atomik koşullu düşüm: eşzamanlı siparişlerde negatif stok oluşmasını engeller.
+        const deducted = await tx.product.updateMany({
+          where: {
+            id: product.id,
+            tenantId: tenant.id,
+            isActive: true,
+            stock: { gte: line.quantity },
+          },
           data: { stock: { decrement: line.quantity } },
         });
+        if (deducted.count !== 1) {
+          throw new Error(`"${product.name}" için yeterli stok kalmadı. Sepetinizi yenileyip tekrar deneyin.`);
+        }
       }
 
       await tx.auditLog.create({
