@@ -88,7 +88,6 @@ export default function ReceiptForm({
             defaultValue="RECEIVED"
             className={selectClass}
           >
-            <option value="PENDING">Beklemede (stoğa eklenmez)</option>
             <option value="RECEIVED">Tam Alındı (stoğa eklenir)</option>
             <option value="PARTIAL">Kısmi Alındı (stoğa eklenir)</option>
             <option value="CANCELLED">İptal (stoğa eklenmez)</option>
