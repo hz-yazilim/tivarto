@@ -13,8 +13,6 @@ import {
 } from "@/lib/auth";
 import {
   demoDestination,
-  inferDemoRole,
-  isDemoRole,
   isValidSlug,
   SESSION_COOKIE_NAME,
 } from "@/lib/constants";
@@ -68,12 +66,9 @@ export async function loginAction(
    * otomatik olarak kapanır ve aşağıdaki gerçek doğrulama yolu çalışır.
    */
   if (DEMO_ACTIVE) {
-    const rawRole = str(formData, "role");
-    const role = isDemoRole(rawRole)
-      ? rawRole
-      : inferDemoRole(email, str(formData, "callbackUrl"));
-    await startDemoSession(role, email);
-    redirect(demoDestination(role, formData.get("callbackUrl")));
+    // DB'siz önizleme yalnızca platform yöneticisi panelini açar.
+    await startDemoSession("admin", email);
+    redirect("/admin");
   }
 
   const user = await prisma.user.findUnique({ where: { email } });
