@@ -10,7 +10,7 @@ if (process.env.VERCEL_ENV !== "production") {
   process.exit(0);
 }
 
-const required = ["DIRECT_URL", "APP_DB_PASSWORD"];
+const required = ["DIRECT_URL", "DATABASE_URL"];
 for (const key of required) {
   if (!process.env[key]) {
     console.error(`Production build blocked: ${key} is required.`);
