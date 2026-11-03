@@ -36,8 +36,10 @@ panelinden (`/admin`) işletmeleri, paketleri ve ödemeleri yönetir.
 > `/login` ekranında şifreyle giriş geçici olarak kapalıdır. Bir panel rolüne
 > tıklayarak e-posta veya şifre girmeden **Platform Yöneticisi / İşletme
 > Yetkilisi / Müşteri** olarak devam edebilirsiniz. Ana sayfadan da tek tıkla
-> panele geçiş yapılabilir. Veritabanı bağlandığında demo girişi kapanır ve
-> normal e-posta/şifre girişi otomatik olarak devreye girer.
+> panele geçiş yapılabilir. Demo modunda `/register` de doğrudan örnek işletme
+> paneline giriş sunar; veritabanı olmadığı için gerçek hesap oluşturmaz.
+> Veritabanı bağlandığında demo girişi kapanır ve normal e-posta/şifre girişi
+> otomatik olarak devreye girer.
 
 ---
 
