@@ -80,6 +80,9 @@ export async function loginAction(
   if (!user) {
     return { error: "E-posta veya şifre hatalı." };
   }
+  if (user.isSuspended) {
+    return { error: "Bu hesap geçici olarak askıya alınmıştır. Destek ekibiyle iletişime geçin." };
+  }
 
   const valid = await comparePassword(password, user.passwordHash);
   if (!valid) {
@@ -128,6 +131,9 @@ export async function registerAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  const maintenance = await prisma.featureFlag.findUnique({ where: { key: "maintenance_mode" }, select: { enabled: true } });
+  if (maintenance?.enabled) return { error: "Yeni işletme kayıtları bakım süresince geçici olarak durdurulmuştur." };
+
   const email = str(formData, "email").toLowerCase();
   const password = str(formData, "password");
   const name = str(formData, "name");

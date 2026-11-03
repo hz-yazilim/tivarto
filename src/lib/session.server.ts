@@ -141,6 +141,13 @@ export async function requireWritableTenantContext(): Promise<TenantContext> {
   if (context.tenant.status !== "ACTIVE") {
     redirect("/panel?error=isletme-askida");
   }
+  const maintenance = await prisma.featureFlag.findUnique({
+    where: { key: "maintenance_mode" },
+    select: { enabled: true },
+  });
+  if (maintenance?.enabled) {
+    redirect("/panel?error=maintenance");
+  }
   return context;
 }
 

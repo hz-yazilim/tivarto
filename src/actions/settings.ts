@@ -16,7 +16,8 @@ export async function updateSettingsAction(
   _prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { tenant, user } = await requireWritableTenantContext();
+  const { tenant, user, role } = await requireWritableTenantContext();
+  if (role !== "OWNER") return { error: "Mağaza ayarlarını yalnızca işletme sahibi değiştirebilir." };
 
   const theme = str(formData, "theme") || "default";
   if (!["default", "modern", "minimal"].includes(theme)) {

@@ -23,7 +23,7 @@ export default async function LoginPage({
         <div className="mb-8 text-center">
           <Link href="/" className="mb-7 inline-flex items-center gap-3">
             <span className="tiverto-gradient flex h-11 w-11 items-center justify-center rounded-xl text-xl font-black text-white shadow-lg shadow-purple-950/40">T</span>
-            <span className="text-2xl font-bold tracking-tight">tiverto<span className="text-purple-300">.</span></span>
+            <span className="text-2xl font-bold tracking-tight">tivarto<span className="text-purple-300">.</span></span>
           </Link>
           <p className="text-xs font-bold uppercase tracking-[.2em] text-purple-300">TEKRAR HOŞ GELDİN</p>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-white">Hesabına giriş yap</h1>

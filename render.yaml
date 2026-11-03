@@ -10,7 +10,7 @@ services:
     buildCommand: npm ci && npm run build
     # Migration'lar her başlatmada çalışır (idempotent); build aşamasında
     # veritabanına erişim olmayabilir, bu yüzden start'a bağlandı.
-    startCommand: npm run db:migrate:deploy && npm run start
+    startCommand: npm run db:migrate:deploy && npm run db:rls && npm run start
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:

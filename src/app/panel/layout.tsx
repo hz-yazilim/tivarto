@@ -20,6 +20,7 @@ export default async function PanelLayout({
         <PanelSidebar
           tenant={{ name: tenant.name, slug: tenant.slug }}
           user={{ name: user.name ?? user.email, isPlatformAdmin: user.isPlatformAdmin }}
+          role={role}
         />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <header className="z-10 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-3 md:px-6">
@@ -49,7 +50,7 @@ export default async function PanelLayout({
           </header>
           <main className="flex-1 overflow-y-auto p-4 md:p-6">
             <div className="mb-4">
-              <DemoRoleSwitcher compact />
+              <DemoRoleSwitcher compact includeAdmin={user.isPlatformAdmin} />
             </div>
             <DemoBanner />
             {children}

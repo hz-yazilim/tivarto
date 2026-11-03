@@ -42,6 +42,21 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum SupportTicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
 // ---------- Platform seviyesi (tenant_id YOK) ----------
 
 model Plan {
@@ -59,9 +74,11 @@ model User {
   passwordHash  String
   name          String
   isPlatformAdmin Boolean   @default(false)
+  isSuspended    Boolean   @default(false)
   createdAt     DateTime     @default(now())
   memberships   Membership[]
   sessions      Session[]
+  supportTickets SupportTicket[]
 }
 
 model Session {
@@ -100,6 +117,7 @@ model Tenant {
   storeSettings   StoreSettings?
   payments        Payment[]
   goodsReceipts   GoodsReceipt[]
+  supportTickets  SupportTicket[]
 }
 
 model Membership {
@@ -296,6 +314,7 @@ model AuditLog {
   action    String
   entity    String
   entityId  String?
+  details   String?
   createdAt DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
@@ -315,4 +334,53 @@ model Payment {
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
+}
+
+
+// ---------- Platform operasyon merkezi ----------
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String
+  enabled     Boolean  @default(false)
+  category    String   @default("product")
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?
+}
+
+model PlatformAuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String
+  targetId   String?
+  reason     String?
+  beforeData Json?
+  afterData  Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId])
+}
+
+model SupportTicket {
+  id             String               @id @default(cuid())
+  tenantId       String
+  createdById    String?
+  subject        String
+  description    String
+  status         SupportTicketStatus  @default(OPEN)
+  priority       SupportTicketPriority @default(NORMAL)
+  resolutionNote String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  tenant  Tenant @relation(fields: [tenantId], references: [id])
+  creator User?  @relation(fields: [createdById], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([status, priority, createdAt])
 }

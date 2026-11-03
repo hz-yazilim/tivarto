@@ -3,12 +3,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Tiverto — İşletmeni yönet, ticaretini büyüt",
-    template: "%s | Tiverto",
+    default: "Tivarto — İşletmeni yönet, ticaretini büyüt",
+    template: "%s | Tivarto",
   },
   description:
     "Küçük ve orta ölçekli işletmeler için ürün, stok, müşteri, tedarikçi, sipariş yönetimi ve otomatik dijital vitrin.",
-  applicationName: "Tiverto",
+  applicationName: "Tivarto",
   manifest: "/manifest.webmanifest",
 };
 

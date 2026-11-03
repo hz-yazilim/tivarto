@@ -62,7 +62,8 @@ export default async function TenantsPage() {
                           </option>
                         ))}
                       </select>
-                      <SubmitButton size="sm" className="ml-2">
+                      <input name="reason" required minLength={5} maxLength={300} placeholder="Gerekçe" className="mt-2 w-full rounded border border-input bg-background px-2 py-1 text-xs" />
+                      <SubmitButton size="sm" className="mt-2">
                         Ata
                       </SubmitButton>
                     </form>
@@ -78,7 +79,8 @@ export default async function TenantsPage() {
                         <option value="ACTIVE">Aktif</option>
                         <option value="SUSPENDED">Askıya Al</option>
                       </select>
-                      <SubmitButton size="sm" className="ml-2">
+                      <input name="reason" required minLength={5} maxLength={300} placeholder="Gerekçe" className="mt-2 w-full rounded border border-input bg-background px-2 py-1 text-xs" />
+                      <SubmitButton size="sm" className="mt-2">
                         Kaydet
                       </SubmitButton>
                     </form>

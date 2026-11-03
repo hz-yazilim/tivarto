@@ -45,6 +45,7 @@ const TENANT_SCOPED = new Set([
   "orderItem",
   "auditLog",
   "payment",
+  "supportTicket",
 ]);
 
 /** Bu projede kullanılan ilişkiler (include/select/_count için). */
@@ -53,9 +54,11 @@ const RELATIONS: Record<string, Record<string, Relation>> = {
   user: {
     memberships: { model: "membership", kind: "many", refFk: "userId" },
     sessions: { model: "session", kind: "many", refFk: "userId" },
+    supportTickets: { model: "supportTicket", kind: "many", refFk: "createdById" },
   },
   session: { user: { model: "user", kind: "one", fk: "userId" } },
   tenant: {
+    supportTickets: { model: "supportTicket", kind: "many", refFk: "tenantId" },
     plan: { model: "plan", kind: "one", fk: "planId" },
     storeSettings: { model: "storeSettings", kind: "one", refFk: "tenantId" },
     memberships: { model: "membership", kind: "many", refFk: "tenantId" },
@@ -113,6 +116,10 @@ const RELATIONS: Record<string, Record<string, Relation>> = {
   },
   auditLog: { tenant: { model: "tenant", kind: "one", fk: "tenantId" } },
   payment: { tenant: { model: "tenant", kind: "one", fk: "tenantId" } },
+  supportTicket: {
+    tenant: { model: "tenant", kind: "one", fk: "tenantId" },
+    creator: { model: "user", kind: "one", fk: "createdById" },
+  },
 };
 
 const MODELS = [
@@ -133,6 +140,9 @@ const MODELS = [
   "orderItem",
   "auditLog",
   "payment",
+  "featureFlag",
+  "platformAuditLog",
+  "supportTicket",
 ];
 
 const scopeStorage = new AsyncLocalStorage<Scope>();
@@ -392,7 +402,7 @@ function defaultsFor(model: string): Row {
   const base: Row = { createdAt: time, updatedAt: time };
   switch (model) {
     case "user":
-      return { ...base, isPlatformAdmin: false, passwordHash: null, name: "" };
+      return { ...base, isPlatformAdmin: false, isSuspended: false, passwordHash: null, name: "" };
     case "tenant":
       return { ...base, status: "ACTIVE" };
     case "membership":
@@ -418,9 +428,15 @@ function defaultsFor(model: string): Row {
     case "orderItem":
       return {};
     case "auditLog":
-      return { ...base, userId: null, entityId: null };
+      return { ...base, userId: null, entityId: null, details: null };
     case "payment":
       return { ...base, status: "PENDING", description: null, paidAt: null };
+    case "featureFlag":
+      return { ...base, enabled: false, category: "product", updatedBy: null };
+    case "platformAuditLog":
+      return { ...base, actorId: null, targetId: null, reason: null, beforeData: null, afterData: null };
+    case "supportTicket":
+      return { ...base, createdById: null, status: "OPEN", priority: "NORMAL", resolutionNote: null };
     case "session":
       return { ...base, activeTenantId: null };
     default:

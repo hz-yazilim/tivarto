@@ -78,7 +78,7 @@ export async function validateSession(
     include: { user: true },
   });
 
-  if (!session || !session.user) return null;
+  if (!session || !session.user || session.user.isSuspended) return null;
 
   return {
     user: {
