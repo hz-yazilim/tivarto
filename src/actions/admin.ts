@@ -148,7 +148,7 @@ export async function listPayments() {
 }
 
 export async function createPaymentAction(formData: FormData): Promise<void> {
-  await requirePlatformAdmin();
+  const admin = await requirePlatformAdmin();
   const tenantId = str(formData, "tenantId");
   const amount = toNumber(str(formData, "amount"));
   const description = str(formData, "description") || null;
@@ -159,15 +159,16 @@ export async function createPaymentAction(formData: FormData): Promise<void> {
 
   // Payment/tenant verisi: RLS bağlamı tenant olarak kurulur.
   await withTenant(tenantId, async (tx) => {
-    await tx.payment.create({
+    const payment = await tx.payment.create({
       data: { tenantId, amount, status: "PAID", description, paidAt: new Date() },
     });
     await tx.auditLog.create({
       data: {
         tenantId,
-        action: "payment.create",
+        userId: admin.user.id,
+        action: "payment.manual_record",
         entity: "Payment",
-        entityId: tenantId,
+        entityId: payment.id,
       },
     });
   });
