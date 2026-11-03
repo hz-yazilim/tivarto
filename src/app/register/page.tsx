@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default function RegisterPage() {
-  if (!DEMO_ACTIVE) return <RegisterForm />;
+  if (!DEMO_ACTIVE) return <RegisterForm demoActive={false} />;
 
   return (
     <main className="flex min-h-screen items-center justify-center px-5 py-10">
