@@ -55,3 +55,12 @@ export function isValidPhone(phone: string): boolean {
   const digits = phone.replace(/\D/g, "");
   return digits.length >= 10 && digits.length <= 15;
 }
+
+/** WhatsApp wa.me için uluslararası numara biçimine dönüştürür. */
+export function normalizeWhatsAppNumber(raw: string): string | null {
+  let digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.startsWith("0")) digits = `9${digits.slice(1)}`;
+  else if (digits.length === 10) digits = `90${digits}`;
+  return digits.length >= 11 && digits.length <= 15 ? digits : null;
+}
