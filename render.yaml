@@ -1,6 +1,6 @@
-# Render Blueprint — Tiverto
-# Gelistirme önizlemesi: DB olmadan bellek içi sahte veriyle açılır.
-# Kalıcı veritabanı bağlandığında aşağıdaki iki demo değişkenini false yapın.
+# Render Blueprint — Tivarto
+# Bu servis şu an yalnızca DB'siz geliştirme/demo önizlemesidir.
+# Gerçek veritabanına geçerken TIVARTO_REAL_MODE=true ve DATABASE_URL ekleyin.
 services:
   - type: web
     name: tiverto
@@ -8,7 +8,6 @@ services:
     plan: free
     region: frankfurt
     buildCommand: npm ci && npm run build
-    # start.mjs demo modunda migration/RLS adımlarını atlar.
     startCommand: npm run start
     healthCheckPath: /api/health
     autoDeploy: true
@@ -17,24 +16,11 @@ services:
         value: "22"
       - key: NODE_ENV
         value: production
-      - key: DATABASE_URL
-        fromDatabase:
-          name: tiverto-db
-          property: connectionString
-      - key: DIRECT_URL
-        fromDatabase:
-          name: tiverto-db
-          property: connectionString
-      - key: NEXT_PUBLIC_ROOT_DOMAIN
-        sync: false
+      - key: TIVARTO_REAL_MODE
+        value: "false"
       - key: DEMO_MODE
         value: "true"
       - key: DEMO_FAKE_DATA
         value: "true"
-
-databases:
-  - name: tiverto-db
-    plan: free
-    region: frankfurt
-    databaseName: tiverto
-    user: tiverto
+      - key: NEXT_PUBLIC_ROOT_DOMAIN
+        sync: false
