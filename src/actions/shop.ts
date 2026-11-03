@@ -70,6 +70,10 @@ export async function createStorefrontOrderAction(
   if (!tenant || tenant.status !== "ACTIVE") {
     return { error: "Mağaza şu anda sipariş kabul etmiyor." };
   }
+  const maintenance = await prisma.featureFlag.findUnique({ where: { key: "maintenance_mode" }, select: { enabled: true } });
+  if (maintenance?.enabled) {
+    return { error: "Tivarto şu anda bakımda. Lütfen daha sonra tekrar deneyin." };
+  }
 
   let orderId = "";
   let total = 0;
