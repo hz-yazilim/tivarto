@@ -33,7 +33,13 @@ export async function createProductAction(
 
   const stock = Math.max(0, toInt(str(formData, "stock"), 0));
 
-  await withTenant(tenant.id, async (tx) => {
+  const created = await withTenant(tenant.id, async (tx) => {
+    const [productCount, plan] = await Promise.all([
+      tx.product.count({ where: { tenantId: tenant.id } }),
+      tx.plan.findUnique({ where: { id: tenant.planId }, select: { maxProducts: true, name: true } }),
+    ]);
+    if (plan && productCount >= plan.maxProducts) return false;
+
     const product = await tx.product.create({
       data: {
         tenantId: tenant.id,
@@ -74,7 +80,12 @@ export async function createProductAction(
         entityId: product.id,
       },
     });
+    return true;
   });
+
+  if (!created) {
+    return { error: "Paketinizdeki ürün limitine ulaştınız. Daha fazla ürün eklemek için planınızı yükseltin." };
+  }
 
   revalidatePath("/panel/products");
   redirect("/panel/products");
