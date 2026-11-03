@@ -2,14 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireTenantContext } from "@/lib/session.server";
+import { requireWritableTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
 import { optionalStr, str, toInt } from "@/lib/validation";
 
 export async function createStockMovementAction(
   formData: FormData
 ): Promise<void> {
-  const { tenant, user } = await requireTenantContext();
+  const { tenant, user } = await requireWritableTenantContext();
   const productId = str(formData, "productId");
   const type = str(formData, "type");
   const quantity = toInt(str(formData, "quantity"), 0);
@@ -64,7 +64,7 @@ export async function createStockMovementAction(
 }
 
 export async function adjustStockAction(formData: FormData): Promise<void> {
-  const { tenant, user } = await requireTenantContext();
+  const { tenant, user } = await requireWritableTenantContext();
   const productId = str(formData, "productId");
   const newStock = toInt(str(formData, "newStock"), -1);
   const note = optionalStr(formData, "note");
