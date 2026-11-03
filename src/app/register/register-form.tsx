@@ -44,7 +44,7 @@ export default function RegisterForm({ demoActive = false }: { demoActive?: bool
             <span className="text-2xl font-bold tracking-tight text-white">tiverto<span className="text-purple-300">.</span></span>
           </a>
           <p className="text-xs font-bold uppercase tracking-[.2em] text-purple-300">İŞLETME HESABI</p>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-white">Ücretsiz hesabını oluştur</h1>
+          <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-white">İşletme hesabını oluştur</h1>
           <p className="mt-2 text-sm leading-6 text-zinc-400">İşletmeni yönetmeye başlamak için bilgilerini gir.</p>
         </div>
 
@@ -76,7 +76,7 @@ export default function RegisterForm({ demoActive = false }: { demoActive?: bool
           </form>
           <p className="mt-6 text-center text-sm text-zinc-400">Zaten hesabın var mı? <a href="/login" className="font-semibold text-purple-300 hover:underline">Giriş yap</a></p>
         </div>
-        <p className="mt-5 text-center text-xs text-zinc-500">{demoActive ? "Demo verileri kullanılıyor; gerçek müşteri bilgisi girmeyin." : "Hesabını oluşturarak Tiverto kullanım koşullarını kabul etmiş olursun."}</p>
+        <p className="mt-5 text-center text-xs text-zinc-500">{demoActive ? "Demo verileri kullanılıyor; gerçek müşteri bilgisi girmeyin." : "Kayıt işlemiyle işletmen için bir hesap ve mağaza adresi oluşturulur."}</p>
       </div>
     </main>
   );
