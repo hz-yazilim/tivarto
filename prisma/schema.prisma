@@ -75,6 +75,7 @@ model User {
   name          String
   isPlatformAdmin Boolean   @default(false)
   isSuspended    Boolean   @default(false)
+  mustChangePassword Boolean @default(false)
   createdAt     DateTime     @default(now())
   memberships   Membership[]
   sessions      Session[]
