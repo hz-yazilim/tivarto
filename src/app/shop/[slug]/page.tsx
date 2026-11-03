@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma, withTenant } from "@/lib/db";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import StorefrontOrder from "@/components/storefront-order";
 import DemoBanner from "@/components/demo-banner";
 import DemoRoleSwitcher from "@/components/demo-role-switcher";
+import { DEMO_ACTIVE } from "@/lib/demo-config";
 
 export const dynamic = "force-dynamic";
 
@@ -112,18 +112,16 @@ export default async function ShopPage({
     <div className="min-h-screen bg-secondary">
       <div className="mx-auto max-w-5xl px-4 py-6 md:px-6 md:py-8">
         <nav className="mb-6 flex items-center justify-between">
-          <Link href="/">
-            <Button variant="ghost" size="sm">
-              ← Tivarto
-            </Button>
-          </Link>
+          <Link href="/" className="inline-flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent">← Tiverto</Link>
           <div className="flex items-center gap-3">
-            <Link
-              href="/musteri"
-              className="text-xs font-medium text-primary hover:underline"
-            >
-              Siparişlerim
-            </Link>
+            {DEMO_ACTIVE && (
+              <Link
+                href="/musteri"
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Siparişlerim
+              </Link>
+            )}
             <span className="text-xs text-muted-foreground">
               {slug} · Tivarto vitrini
             </span>
