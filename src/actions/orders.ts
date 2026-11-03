@@ -28,8 +28,25 @@ export async function updateOrderStatusAction(formData: FormData): Promise<void>
     });
     if (!order || order.status === status) return;
 
-    // Sipariş iptal edilirse stok geri eklenir.
-    if (status === "CANCELLED" && order.status !== "CANCELLED") {
+    // Tamamlanan veya iptal edilen siparişler terminal durumdur.
+    const allowed: Record<OrderStatus, OrderStatus[]> = {
+      NEW: ["CONFIRMED", "CANCELLED"],
+      CONFIRMED: ["PREPARING", "CANCELLED"],
+      PREPARING: ["COMPLETED", "CANCELLED"],
+      COMPLETED: [],
+      CANCELLED: [],
+    };
+    if (!allowed[order.status].includes(status)) return;
+
+    // Durumu önce koşullu değiştir: eşzamanlı iki iptal stoğu iki kez iade edemez.
+    const changed = await tx.order.updateMany({
+      where: { id, tenantId: tenant.id, status: order.status },
+      data: { status },
+    });
+    if (changed.count !== 1) return;
+
+    // Sipariş ilk kez iptal edildiğinde stok yalnızca bir kez geri eklenir.
+    if (status === "CANCELLED") {
       const items = await tx.orderItem.findMany({
         where: { orderId: id, tenantId: tenant.id },
         select: { productId: true, quantity: true },
@@ -51,8 +68,6 @@ export async function updateOrderStatusAction(formData: FormData): Promise<void>
         });
       }
     }
-
-    await tx.order.update({ where: { id }, data: { status } });
 
     await tx.auditLog.create({
       data: {
