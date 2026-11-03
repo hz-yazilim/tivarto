@@ -24,10 +24,10 @@ BEGIN
     EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', t);
     EXECUTE format(
       'CREATE POLICY tenant_isolation ON %I
-         USING (current_setting(''app.platform'', true) = ''on''
-                OR "tenantId" = current_setting(''app.tenant_id'', true))
-         WITH CHECK (current_setting(''app.platform'', true) = ''on''
-                     OR "tenantId" = current_setting(''app.tenant_id'', true))',
+         USING ((SELECT current_setting(''app.platform'', true)) = ''on''
+                OR "tenantId" = (SELECT current_setting(''app.tenant_id'', true)))
+         WITH CHECK ((SELECT current_setting(''app.platform'', true)) = ''on''
+                     OR "tenantId" = (SELECT current_setting(''app.tenant_id'', true)))',
       t
     );
   END LOOP;
