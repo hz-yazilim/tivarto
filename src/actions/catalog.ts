@@ -27,7 +27,9 @@ export async function createProductAction(
   const name = str(formData, "name");
   const sellPrice = toNumber(str(formData, "sellPrice"));
   if (!name) return { error: "Ürün adı zorunludur." };
-  if (sellPrice === undefined) return { error: "Geçerli bir satış fiyatı girin." };
+  if (sellPrice === undefined || sellPrice < 0) return { error: "Sıfır veya daha yüksek geçerli bir satış fiyatı girin." };
+  const buyPrice = toNumber(str(formData, "buyPrice"));
+  if (buyPrice !== undefined && buyPrice < 0) return { error: "Alış fiyatı negatif olamaz." };
 
   const stock = Math.max(0, toInt(str(formData, "stock"), 0));
 
@@ -41,7 +43,7 @@ export async function createProductAction(
         imageUrl: optionalStr(formData, "imageUrl"),
         barcode: optionalStr(formData, "barcode"),
         sku: optionalStr(formData, "sku"),
-        buyPrice: toNumber(str(formData, "buyPrice")) ?? null,
+        buyPrice: buyPrice ?? null,
         sellPrice,
         stock,
         minStock: Math.max(0, toInt(str(formData, "minStock"), 0)),
@@ -89,7 +91,9 @@ export async function updateProductAction(
   const name = str(formData, "name");
   const sellPrice = toNumber(str(formData, "sellPrice"));
   if (!name) return { error: "Ürün adı zorunludur." };
-  if (sellPrice === undefined) return { error: "Geçerli bir satış fiyatı girin." };
+  if (sellPrice === undefined || sellPrice < 0) return { error: "Sıfır veya daha yüksek geçerli bir satış fiyatı girin." };
+  const buyPrice = toNumber(str(formData, "buyPrice"));
+  if (buyPrice !== undefined && buyPrice < 0) return { error: "Alış fiyatı negatif olamaz." };
 
   const missing = await withTenant(tenant.id, async (tx) => {
     const product = await tx.product.findFirst({
@@ -110,7 +114,7 @@ export async function updateProductAction(
         imageUrl: optionalStr(formData, "imageUrl") ?? null,
         barcode: optionalStr(formData, "barcode") ?? null,
         sku: optionalStr(formData, "sku") ?? null,
-        buyPrice: toNumber(str(formData, "buyPrice")) ?? null,
+        buyPrice: buyPrice ?? null,
         sellPrice,
         minStock: Math.max(0, toInt(str(formData, "minStock"), 0)),
         isActive: readIsActive(formData),
