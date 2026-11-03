@@ -1,5 +1,3 @@
-"use server";
-
 import Link from "next/link";
 import { requireTenantContext } from "@/lib/session.server";
 import { withTenant } from "@/lib/db";
