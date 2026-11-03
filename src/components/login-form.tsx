@@ -64,7 +64,7 @@ export default function LoginForm({
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Henüz hesabınız yok mu?{" "}
         <a href="/register" className="font-medium hover:underline">
-          Ücretsiz oluşturun
+          Hesap oluşturun
         </a>
       </p>
     </div>
