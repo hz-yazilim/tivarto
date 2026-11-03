@@ -74,6 +74,7 @@ model User {
   passwordHash  String
   name          String
   isPlatformAdmin Boolean   @default(false)
+  isSuspended    Boolean   @default(false)
   createdAt     DateTime     @default(now())
   memberships   Membership[]
   sessions      Session[]
