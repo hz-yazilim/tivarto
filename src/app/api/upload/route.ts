@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import { getSession } from "@/lib/session.server";
+import { getTenantContext } from "@/lib/session.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,10 +31,15 @@ function detectImageExtension(buffer: Buffer): string | null {
 
 export async function POST(req: Request) {
   try {
-    // Yükleme yalnızca giriş yapmış kullanıcılar için.
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Yetkisiz." }, { status: 401 });
+    // Görsel yükleme yalnızca aktif işletme oturumu olan kullanıcılara açık.
+    let context;
+    try {
+      context = await getTenantContext();
+    } catch {
+      return NextResponse.json({ error: "İşletme oturumu gerekli." }, { status: 403 });
+    }
+    if (context.tenant.status !== "ACTIVE") {
+      return NextResponse.json({ error: "Askıya alınmış işletmeler dosya yükleyemez." }, { status: 403 });
     }
 
     const formData = await req.formData();
