@@ -18,6 +18,7 @@ import {
   X,
   Store,
   LifeBuoy,
+  UserCog,
 } from "lucide-react";
 import { classNames } from "./ui/utils";
 
@@ -31,22 +32,25 @@ const NAV = [
   { name: "Tedarikçiler", href: "/panel/suppliers", icon: Building2 },
   { name: "Siparişler", href: "/panel/orders", icon: ShoppingCart },
   { name: "Destek", href: "/panel/support", icon: LifeBuoy },
+  { name: "Ekip", href: "/panel/team", icon: UserCog, ownerOnly: true },
   { name: "Ayarlar", href: "/panel/settings", icon: Settings },
 ];
 
 export default function PanelSidebar({
   tenant,
   user,
+  role,
 }: {
   tenant: { name: string; slug: string };
   user: { name: string; isPlatformAdmin: boolean };
+  role: "OWNER" | "STAFF";
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   const nav = (
     <nav className="flex-1 space-y-1 overflow-y-auto px-2" aria-label="Ana menü">
-      {NAV.map((item) => {
+      {NAV.filter((item) => !("ownerOnly" in item) || role === "OWNER").map((item) => {
         const isActive =
           pathname === item.href ||
           (item.href !== "/panel" && pathname.startsWith(`${item.href}/`));
