@@ -7,6 +7,7 @@ import {
   type ValidSession,
 } from "@/lib/auth";
 import { prisma, withPlatform, withTenant } from "@/lib/db";
+import { PLATFORM_ADMIN_EMAIL } from "@/lib/constants";
 
 export type SessionUser = ValidSession["user"];
 
@@ -158,6 +159,11 @@ export async function requirePlatformAdmin(): Promise<ValidSession> {
   const session = await getSession();
   if (!session) redirect("/login");
   if (session.user.mustChangePassword) redirect("/change-password");
-  if (!session.user.isPlatformAdmin) redirect("/login?callbackUrl=%2Fadmin");
+  if (
+    !session.user.isPlatformAdmin ||
+    session.user.email.trim().toLowerCase() !== PLATFORM_ADMIN_EMAIL
+  ) {
+    redirect("/login?callbackUrl=%2Fadmin");
+  }
   return session;
 }
