@@ -1,6 +1,7 @@
-import { listSupportTickets, updateSupportTicketAction } from "@/actions/admin";
+import { listSupportTickets, updateSupportTicketAction, deleteSupportTicketAdminAction } from "@/actions/admin";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 
 export const dynamic = "force-dynamic";
 const labels: Record<string, string> = { OPEN: "Açık", IN_PROGRESS: "İşlemde", WAITING_CUSTOMER: "Müşteri yanıtı bekleniyor", RESOLVED: "Çözüldü", CLOSED: "Kapalı" };
@@ -25,6 +26,11 @@ export default async function SupportAdminPage() {
             <Input name="resolutionNote" defaultValue={ticket.resolutionNote || ""} placeholder="Kullanıcıya gösterilecek çözüm notu" maxLength={1500} />
             <Input name="reason" placeholder="İşlem gerekçesi" minLength={5} maxLength={300} required />
             <SubmitButton>Talebi güncelle</SubmitButton>
+          </form>
+          <form action={deleteSupportTicketAdminAction} className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+            <input type="hidden" name="id" value={ticket.id} />
+            <Input name="reason" placeholder="Silme gerekçesi (zorunlu)" minLength={5} maxLength={300} required />
+            <ConfirmSubmitButton variant="destructive" message="Bu destek talebi kalıcı olarak silinecek. Devam edilsin mi?">Talebi sil</ConfirmSubmitButton>
           </form>
         </section>)}
         {tickets.length === 0 && <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">Henüz destek talebi yok.</div>}
