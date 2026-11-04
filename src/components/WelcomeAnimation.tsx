@@ -123,11 +123,11 @@ export default function WelcomeAnimation() {
         .tv-intro-kicker{position:absolute;top:55px;width:100%;text-align:center;font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.4);font-weight:700}
         .tv-intro-basket{position:absolute;left:50%;top:42%;width:148px;height:110px;transform:translate(-50%,-50%);transition:opacity .5s,transform .6s}
         .tv-intro-basket-away{opacity:0;transform:translate(-50%,-50%) scale(.72)}
-        .tv-intro-basket-front{position:absolute;inset:8px 0 0;border:1px solid rgba(255,255,255,.2);border-radius:16px 16px 25px 25px;background:linear-gradient(135deg,#7c3aed,#a855f7 35%,#ec4899);box-shadow:0 12px 28px rgba(124,58,237,.4),inset 0 1px 0 rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900}
+        .tv-intro-basket-front{z-index:1;position:absolute;inset:8px 0 0;border:1px solid rgba(255,255,255,.2);border-radius:16px 16px 25px 25px;background:linear-gradient(135deg,#7c3aed,#a855f7 35%,#ec4899);box-shadow:0 12px 28px rgba(124,58,237,.4),inset 0 1px 0 rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900}
         .tv-intro-basket-front span{opacity:.5}
         .tv-intro-basket-shine{position:absolute;z-index:2;top:8px;left:10px;right:10px;height:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.8),transparent)}
-        .tv-intro-basket-items{position:absolute;z-index:3;inset:0}
-        .tv-intro-falling-product{position:absolute;top:-42px;width:36px;height:36px;border:1px solid rgba(255,255,255,.3);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 7px 18px rgba(0,0,0,.25);animation:tvDrop 1.15s cubic-bezier(.2,.75,.25,1) both}
+        .tv-intro-basket-items{position:absolute;z-index:2;inset:0}
+        .tv-intro-falling-product{position:absolute;top:-155px;width:36px;height:36px;border:1px solid rgba(255,255,255,.3);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 7px 18px rgba(0,0,0,.25);animation:tvDrop 1.15s cubic-bezier(.2,.75,.25,1) both}
         .tv-intro-shelves{position:absolute;left:20px;right:20px;bottom:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;transition:opacity .4s}
         .tv-intro-shelves-hidden{opacity:0}
         .tv-intro-shelf-slot{height:68px;border:1px dashed rgba(168,85,247,.35);border-radius:14px;background:rgba(255,255,255,.035);display:flex;align-items:center;justify-content:center;position:relative;animation:tvSlotIn .45s cubic-bezier(.34,1.56,.64,1) both}
@@ -147,7 +147,7 @@ export default function WelcomeAnimation() {
         .tv-intro-skip{position:fixed;top:calc(16px + env(safe-area-inset-top));right:16px;z-index:2;border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:8px 13px;background:rgba(255,255,255,.08);color:#fff;font-size:12px;font-weight:700;backdrop-filter:blur(12px)}
         @keyframes tvFadeIn{from{opacity:0}to{opacity:1}}
         @keyframes tvPulse{50%{opacity:.45;transform:scale(.86)}}
-        @keyframes tvDrop{0%{transform:translateY(-20px) rotate(-12deg);opacity:0}15%{opacity:1}80%{transform:translateY(240px) rotate(8deg);opacity:1}100%{transform:translateY(246px) rotate(0) scale(.78);opacity:0}}
+        @keyframes tvDrop{0%{transform:translateY(-20px) rotate(-12deg);opacity:0}15%{opacity:1}80%{transform:translateY(190px) rotate(8deg);opacity:1}100%{transform:translateY(195px) rotate(0) scale(.78);opacity:0}}
         @keyframes tvSlotIn{from{opacity:0;transform:translateY(16px) scale(.7)}to{opacity:1;transform:translateY(0) scale(1)}}
         @keyframes tvBrandIn{from{opacity:0;transform:scale(.82);filter:blur(10px)}to{opacity:1;transform:scale(1);filter:blur(0)}}
         @media(max-width:420px){.tv-intro-stage{height:min(520px,calc(100dvh - 110px))}.tv-intro-caption{font-size:10px;gap:6px}}
