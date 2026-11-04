@@ -38,7 +38,6 @@ export async function getBusinessInsights() {
           id: true,
           customerId: true,
           customerName: true,
-          customerPhone: true,
           total: true,
           createdAt: true,
           items: {
@@ -145,7 +144,6 @@ export async function getBusinessInsights() {
   const customerMap = new Map<string, {
     id: string;
     name: string;
-    phone: string;
     orderCount: number;
     revenue: number;
     lastOrderAt: Date;
@@ -155,7 +153,6 @@ export async function getBusinessInsights() {
     const existing = customerMap.get(order.customerId) ?? {
       id: order.customerId,
       name: order.customerName,
-      phone: order.customerPhone,
       orderCount: 0,
       revenue: 0,
       lastOrderAt: order.createdAt,
