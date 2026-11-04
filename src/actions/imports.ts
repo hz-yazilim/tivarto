@@ -34,7 +34,7 @@ function detectCsvDelimiter(input: string): ',' | ';' {
   let quoted = false;
   let commas = 0;
   let semicolons = 0;
-  for (let index = 0; index < input.length && input[index] !== '\\n'; index += 1) {
+  for (let index = 0; index < input.length && input[index] !== '\n'; index += 1) {
     const char = input[index];
     if (char === '"' && input[index + 1] === '"' && quoted) {
       index += 1;
@@ -72,7 +72,7 @@ function parseCsvRows(input: string): string[][] {
     } else if (char === delimiter) {
       row.push(field);
       field = '';
-    } else if (char === '\\n') {
+    } else if (char === '\n') {
       row.push(field);
       if (row.some((cell) => cell.trim().length > 0)) rows.push(row);
       row = [];
