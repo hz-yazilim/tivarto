@@ -13,7 +13,6 @@ const FEATURES = [
 export default function Home() {
   return (
     <main className="relative mx-auto min-h-screen max-w-6xl overflow-hidden px-4 py-8 sm:px-6 md:py-14">
-      <WelcomeAnimation />
       <div aria-hidden="true" className="pointer-events-none absolute -left-40 top-24 h-80 w-80 rounded-full bg-purple-700/15 blur-3xl" />
       <div aria-hidden="true" className="pointer-events-none absolute -right-36 top-72 h-80 w-80 rounded-full bg-rose-700/10 blur-3xl" />
 
@@ -48,6 +47,8 @@ export default function Home() {
           <span>✓ Kolay kullanım</span><span>✓ Tek panelden yönetim</span><span>✓ Mobil uyumlu deneyim</span>
         </div>
       </section>
+
+      <WelcomeAnimation />
 
       <section className="relative z-10 mb-16">
         <div className="mb-7 text-center">
