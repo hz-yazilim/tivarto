@@ -81,7 +81,7 @@ export default async function Dashboard() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div data-tour="dashboard-orders" className="rounded-xl border border-border bg-card p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold">Son Siparişler</h2>
             <Link
@@ -125,7 +125,7 @@ export default async function Dashboard() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div data-tour="dashboard-stock" className="rounded-xl border border-border bg-card p-5">
             <h2 className="mb-3 font-semibold">Kritik Stok</h2>
             <div className="space-y-2 text-sm">
               {stats.critical.length > 0 ? (
@@ -145,7 +145,7 @@ export default async function Dashboard() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div data-tour="dashboard-quick-actions" className="rounded-xl border border-border bg-card p-5">
             <h2 className="mb-3 font-semibold">Hızlı İşlemler</h2>
             <div className="grid gap-2 sm:grid-cols-2">
               <QuickLink href="/panel/products">📦 Ürün Ekle</QuickLink>
