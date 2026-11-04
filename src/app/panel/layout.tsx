@@ -40,6 +40,13 @@ export default async function PanelLayout({
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="hidden sm:inline">Yönetim Paneli</span>
               <a
+                href="/panel/akilli-analiz"
+                data-tour="smart-analysis-link"
+                className="rounded-md border border-input px-2 py-1 font-medium text-foreground hover:bg-accent"
+              >
+                Akıllı Analiz
+              </a>
+              <a
                 href={`/shop/${tenant.slug}`}
                 className="rounded-md border border-input px-2 py-1 font-medium text-foreground hover:bg-accent"
               >
