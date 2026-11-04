@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { prisma } from "@/lib/db";
+import { PLATFORM_ADMIN_EMAIL } from "@/lib/constants";
 
 const SALT_ROUNDS = 12;
 
@@ -86,7 +87,9 @@ export async function validateSession(
       id: session.user.id,
       email: session.user.email,
       name: session.user.name,
-      isPlatformAdmin: session.user.isPlatformAdmin,
+      isPlatformAdmin:
+        session.user.isPlatformAdmin &&
+        session.user.email.trim().toLowerCase() === PLATFORM_ADMIN_EMAIL,
       mustChangePassword: session.user.mustChangePassword,
     },
   };
