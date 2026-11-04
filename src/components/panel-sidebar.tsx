@@ -20,6 +20,7 @@ import {
   LifeBuoy,
   UserCog,
   BarChart3,
+  Sparkles,
 } from "lucide-react";
 import { classNames } from "./ui/utils";
 
@@ -32,6 +33,7 @@ const NAV = [
   { name: "Müşteriler", href: "/panel/customers", icon: Users },
   { name: "Tedarikçiler", href: "/panel/suppliers", icon: Building2 },
   { name: "Siparişler", href: "/panel/orders", icon: ShoppingCart },
+  { name: "Akıllı Analiz", href: "/panel/akilli-analiz", icon: Sparkles },
   { name: "Raporlar", href: "/panel/reports", icon: BarChart3 },
   { name: "Destek", href: "/panel/support", icon: LifeBuoy },
   { name: "Ekip", href: "/panel/team", icon: UserCog, ownerOnly: true },
@@ -55,7 +57,7 @@ export default function PanelSidebar({
       {NAV.filter((item) => !("ownerOnly" in item) || role === "OWNER").map((item) => {
         const isActive =
           pathname === item.href ||
-          (item.href !== "/panel" && pathname.startsWith(`${item.href}/`));
+          (item.href !== "/panel" && pathname.startsWith(item.href + "/"));
         return (
           <Link
             key={item.name}
@@ -78,7 +80,6 @@ export default function PanelSidebar({
 
   return (
     <>
-      {/* Mobil üst çubuk */}
       <div className="fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-border bg-card px-4 py-2 md:hidden">
         <button
           type="button"
@@ -92,26 +93,16 @@ export default function PanelSidebar({
       </div>
       <div className="h-12 md:hidden" />
 
-      {/* Mobil çekmece */}
       {open && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setOpen(false)}
-          />
+          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
           <aside className="absolute inset-y-0 left-0 flex w-72 flex-col bg-card">
             <div className="flex items-center justify-between px-4 py-4">
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold">{tenant.name}</div>
-                <div className="truncate text-xs text-muted-foreground">
-                  {tenant.slug}
-                </div>
+                <div className="truncate text-xs text-muted-foreground">{tenant.slug}</div>
               </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Menüyü kapat"
-              >
+              <button type="button" onClick={() => setOpen(false)} aria-label="Menüyü kapat">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -121,17 +112,12 @@ export default function PanelSidebar({
         </div>
       )}
 
-      {/* Masaüstü sabit menü */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
         <div className="flex items-center gap-3 px-4 py-6">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
-            T
-          </div>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">T</div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-semibold">{tenant.name}</div>
-            <div className="truncate text-xs text-muted-foreground">
-              {tenant.slug}
-            </div>
+            <div className="truncate text-xs text-muted-foreground">{tenant.slug}</div>
           </div>
         </div>
         {nav}
@@ -144,30 +130,18 @@ export default function PanelSidebar({
 function SidebarFooter({ slug, isAdmin }: { slug: string; isAdmin: boolean }) {
   return (
     <div className="space-y-1 border-t border-border px-2 py-3">
-      <Link
-        href="/panel-secimi"
-        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-      >
+      <Link href="/panel-secimi" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
         <Building2 className="h-5 w-5 shrink-0" /> İşletme değiştir
       </Link>
-      <Link
-        href={`/shop/${slug}`}
-        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-      >
+      <Link href={"/shop/" + slug} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
         <Store className="h-5 w-5 shrink-0" /> Vitrini Gör
       </Link>
       {isAdmin ? (
-        <Link
-          href="/admin"
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-        >
+        <Link href="/admin" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
           <LayoutDashboard className="h-5 w-5 shrink-0" /> Platform Paneli
         </Link>
       ) : null}
-      <a
-        href="/logout"
-        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-      >
+      <a href="/logout" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
         <LogOut className="h-5 w-5 shrink-0" /> Çıkış Yap
       </a>
     </div>
