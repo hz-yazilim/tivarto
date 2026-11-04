@@ -34,6 +34,23 @@ jobs:
       - name: Tip kontrolü
         run: npm run typecheck
 
+
+      - name: Bağımlılık güvenlik denetimi
+        run: |
+          npm audit --json > /tmp/npm-audit.json || true
+          node -e '
+            const report = require("/tmp/npm-audit.json");
+            const entries = Object.entries(report.vulnerabilities ?? {});
+            if (entries.length === 0) {
+              console.log("npm audit: güvenlik açığı bulunmadı.");
+            } else {
+              for (const [name, item] of entries) {
+                const via = (item.via ?? []).map((entry) => typeof entry === "string" ? entry : entry.title).join("; ");
+                console.log(name + " | " + item.severity + " | direct=" + item.isDirect + " | fix=" + JSON.stringify(item.fixAvailable) + " | " + via);
+              }
+            }
+          '
+
       - name: Üretim derlemesi
         run: npm run build
         env:
