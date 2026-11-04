@@ -30,7 +30,7 @@ export default function ProductImportForm() {
         </button>
       </form>
       <p className="mt-2 text-xs text-muted-foreground">
-        En fazla 500 ürün ve 2 MB. Zorunlu alanlar: ürün adı ve satış fiyatı. Aynı SKU veya barkod varsa aktarım durdurulur.
+        UTF-8 CSV biçimi; virgül veya noktalı virgül ayraç desteklenir. En fazla 500 ürün ve 2 MB. Zorunlu alanlar: ürün adı ve satış fiyatı. Aynı SKU veya barkod varsa aktarım durdurulur.
       </p>
     </section>
   );
