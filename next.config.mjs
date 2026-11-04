@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    serverActions: { bodySizeLimit: "2mb" },
+    serverActions: { bodySizeLimit: "3mb" },
   },
   poweredByHeader: false,
   // Önizleme/uzak geliştirme ortamlarında (ör. *.e2b.app) server action
