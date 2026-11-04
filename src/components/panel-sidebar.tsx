@@ -33,7 +33,7 @@ const NAV = [
   { name: "Müşteriler", href: "/panel/customers", icon: Users },
   { name: "Tedarikçiler", href: "/panel/suppliers", icon: Building2 },
   { name: "Siparişler", href: "/panel/orders", icon: ShoppingCart },
-  { name: "Akıllı Analiz", href: "/panel/akilli-analiz", icon: Sparkles },
+  { name: "Akıllı Analiz", href: "/panel/akilli-analiz", icon: Sparkles, tourId: "smart-analysis-link" },
   { name: "Raporlar", href: "/panel/reports", icon: BarChart3 },
   { name: "Destek", href: "/panel/support", icon: LifeBuoy },
   { name: "Ekip", href: "/panel/team", icon: UserCog, ownerOnly: true },
