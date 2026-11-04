@@ -1,7 +1,5 @@
 import LoginForm from "@/components/login-form";
-import DemoRoleSwitcher from "@/components/demo-role-switcher";
 import { safeCallbackUrl } from "@/lib/constants";
-import { DEMO_ACTIVE } from "@/lib/demo-config";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -34,21 +32,11 @@ export default async function LoginPage({
         </div>
 
         <section className="tiverto-glass rounded-2xl p-5 sm:p-7">
-          {DEMO_ACTIVE ? (
-            <div>
-              <div className="mb-5 rounded-xl border border-amber-400/20 bg-amber-400/[0.08] p-4 text-sm leading-6 text-amber-100/90">
-                <strong className="block text-amber-100">Demo modu aktif</strong>
-                Şu anda yalnızca platform yöneticisi girişi açıktır.
-              </div>
-              <DemoRoleSwitcher callbackUrl="/admin" adminOnly />
-            </div>
-          ) : (
-            <LoginForm
-              demoActive={false}
-              callbackUrl={callbackUrl}
-              defaultRole={isAdminLogin ? "admin" : "business"}
-            />
-          )}
+          <LoginForm
+            demoActive={false}
+            callbackUrl={callbackUrl}
+            defaultRole={isAdminLogin ? "admin" : "business"}
+          />
         </section>
 
         <p className="mt-6 text-center text-xs text-zinc-500">
