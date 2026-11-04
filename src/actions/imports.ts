@@ -97,18 +97,18 @@ function parseAmount(value: string, fieldName: string): number | null {
     ? raw.replace(/\./g, '').replace(',', '.')
     : raw;
   const parsed = Number(normalized);
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    throw new Error(fieldName + ' alanında geçersiz veya negatif tutar var: ' + raw);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 9999999999.99) {
+    throw new Error(fieldName + ' alanında geçersiz veya desteklenen sınırı aşan tutar var: ' + raw);
   }
-  return parsed;
+  return Math.round(parsed * 100) / 100;
 }
 
 function parseInteger(value: string, fieldName: string): number {
   const raw = value.trim();
   if (!raw) return 0;
   const parsed = Number(raw);
-  if (!Number.isSafeInteger(parsed) || parsed < 0) {
-    throw new Error(fieldName + ' alanı sıfır veya daha büyük tam sayı olmalı: ' + raw);
+  if (!Number.isSafeInteger(parsed) || parsed < 0 || parsed > 2147483647) {
+    throw new Error(fieldName + ' alanı 0 ile 2.147.483.647 arasında tam sayı olmalı: ' + raw);
   }
   return parsed;
 }
