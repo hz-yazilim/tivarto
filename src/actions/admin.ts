@@ -357,15 +357,16 @@ export async function updateSupportTicketAction(formData: FormData): Promise<voi
 
 export async function listTenantSupportTickets() {
   const context = await requireTenantContext();
-  return withTenant(context.tenant.id, async (tx) => tx.supportTicket.findMany({
+  const tickets = await withTenant(context.tenant.id, async (tx) => tx.supportTicket.findMany({
     where: { tenantId: context.tenant.id },
     orderBy: { createdAt: "desc" },
     take: 50,
     select: {
       id: true, subject: true, description: true, status: true, priority: true,
-      resolutionNote: true, createdAt: true, updatedAt: true,
+      resolutionNote: true, createdAt: true, updatedAt: true, createdById: true,
     },
   }));
+  return tickets.map((ticket) => ({ ...ticket, canDelete: ticket.createdById === context.user.id }));
 }
 
 export async function createSupportTicketAction(formData: FormData): Promise<void> {
