@@ -23,7 +23,6 @@ if (password.length < 8) {
   throw new Error("BOOTSTRAP_ADMIN_PASSWORD en az 8 karakter olmalı.");
 }
 
-const passwordHash = await bcrypt.hash(password, 12);
 const client = new Client({ connectionString });
 await client.connect();
 
@@ -39,8 +38,9 @@ try {
       throw new Error("Bu e-posta zaten platform yöneticisi olmayan bir kullanıcıya ait. Otomatik olarak üzerine yazılmadı.");
     }
     adminId = existing.rows[0].id;
-    console.log(`Platform yöneticisi zaten mevcut; şifre yeniden yazılmadı: ${email}`);
+    console.log("Platform yöneticisi zaten mevcut; mevcut şifre ve oturumlar korundu.");
   } else {
+    const passwordHash = await bcrypt.hash(password, 12);
     const userId = crypto.randomUUID();
     const result = await client.query(
       `INSERT INTO "User" (id, email, "passwordHash", name, "isPlatformAdmin", "isSuspended", "mustChangePassword")
@@ -51,9 +51,8 @@ try {
     adminId = result.rows[0].id;
     console.log(`Platform yöneticisi oluşturuldu: ${email}. İlk girişte şifre değişimi zorunlu.`);
   }
-  await client.query('DELETE FROM "Session" WHERE "userId" = $1', [adminId]);
   await client.query("COMMIT");
-  console.log(`Platform yöneticisi hazır: ${email}. Önceki oturumlar güvenlik için kapatıldı.`);
+  console.log("Platform yöneticisi doğrulandı; mevcut oturumlara dokunulmadı.");
 } catch (error) {
   await client.query("ROLLBACK").catch(() => {});
   throw error;
