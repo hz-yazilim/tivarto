@@ -190,8 +190,8 @@ export default async function SmartAnalysisPage() {
           <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
             İlk siparişler geldikçe satış ivmesi, stok yenileme ve müşteri geri kazanım önerileri burada oluşacak. Ürün ve stok verilerin şimdiden stok değerini hesaplamak için kullanılabilir.
           </p>
-          <Link href="/shop" className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
-            İnternet vitrini
+          <Link href="/panel/orders" className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+            Siparişleri görüntüle
           </Link>
         </section>
       )}
