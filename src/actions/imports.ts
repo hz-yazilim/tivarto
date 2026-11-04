@@ -200,22 +200,20 @@ export async function importProductsCsvAction(formData: FormData): Promise<void>
       return { error: 'Paket ürün limitiniz yetersiz. Mevcut: ' + currentCount + ', aktarılacak: ' + products.length + ', limit: ' + plan.maxProducts + '.' };
     }
 
-    const duplicateFilters = [
-      ...(products.some((product) => product.sku)
-        ? [{ sku: { in: products.map((product) => product.sku).filter((value): value is string => Boolean(value)) } }]
-        : []),
-      ...(products.some((product) => product.barcode)
-        ? [{ barcode: { in: products.map((product) => product.barcode).filter((value): value is string => Boolean(value)) } }]
-        : []),
-    ];
-    if (duplicateFilters.length > 0) {
-      const duplicate = await tx.product.findFirst({
-        where: { tenantId: tenant.id, OR: duplicateFilters },
-        select: { name: true, sku: true, barcode: true },
-      });
-      if (duplicate) {
-        return { error: 'Bu işletmede zaten kayıtlı bir SKU veya barkod bulundu: ' + duplicate.name + '. Önce CSV dosyasını düzeltin.' };
-      }
+    const existingIdentifiers = await tx.product.findMany({
+      where: { tenantId: tenant.id },
+      select: { sku: true, barcode: true },
+    });
+    const existingSkus = new Set(existingIdentifiers.map((item) => item.sku?.trim().toLowerCase()).filter(Boolean));
+    const existingBarcodes = new Set(existingIdentifiers.map((item) => item.barcode?.trim().toLowerCase()).filter(Boolean));
+    const duplicateSku = products.find((product) => product.sku && existingSkus.has(product.sku.toLowerCase()));
+    const duplicateBarcode = products.find((product) => product.barcode && existingBarcodes.has(product.barcode.toLowerCase()));
+    if (duplicateSku || duplicateBarcode) {
+      return {
+        error: duplicateSku
+          ? 'Bu SKU işletmenizde zaten kayıtlı: ' + duplicateSku.sku
+          : 'Bu barkod işletmenizde zaten kayıtlı: ' + duplicateBarcode?.barcode,
+      };
     }
 
     for (const item of products) {
