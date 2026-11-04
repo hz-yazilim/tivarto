@@ -35,6 +35,9 @@ export const SESSION_COOKIE_NAME = "tivarto_session";
 /** Tivarto platform yönetim paneline erişebilecek tek hesap. */
 export const PLATFORM_ADMIN_EMAIL = "hz.yazilimm@gmail.com";
 
+/** Tivarto platform yönetim paneline erişebilecek tek hesap. */
+export const PLATFORM_ADMIN_EMAIL = "hz.yazilimm@gmail.com";
+
 /** Arayüzdeki "Demo" bilgilendirmesi (güvenlikle ilgisi yok, sadece etiket). */
 export const DEMO_MODE = process.env.DEMO_MODE === "true";
 
