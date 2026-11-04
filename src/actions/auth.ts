@@ -14,15 +14,13 @@ import {
   SESSION_TTL_MS,
 } from "@/lib/auth";
 import {
-  demoDestination,
   isValidSlug,
+  PLATFORM_ADMIN_EMAIL,
   SESSION_COOKIE_NAME,
 } from "@/lib/constants";
 import { DEMO_ACTIVE } from "@/lib/demo-config";
 import {
   clearDemoCookies,
-  markDemoSession,
-  startDemoSession,
 } from "@/lib/demo-session.server";
 import { prisma, withPlatform } from "@/lib/db";
 import { getSession } from "@/lib/session.server";
@@ -61,16 +59,8 @@ export async function loginAction(
     return { error: "E-posta ve şifre gereklidir." };
   }
 
-  /**
-   * DB'siz önizleme yalnızca platform yönetim ekranını açar.
-   * Gerçek kimlik doğrulama etkinleştirildiğinde bu geçici yol kapanır.
-   */
-  if (DEMO_ACTIVE) {
-    // DB'siz önizleme yalnızca platform yöneticisi panelini açar.
-    await startDemoSession("admin", email);
-    redirect("/admin");
-  }
-
+  // Demo/önizleme modu kimlik doğrulamayı atlayamaz; tüm girişler gerçek
+  // veritabanı parolasıyla doğrulanır.
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
     return { error: "E-posta veya şifre hatalı." };
@@ -102,28 +92,21 @@ export async function loginAction(
   await setSessionCookie(token);
 
   if (user.mustChangePassword) redirect("/change-password");
-  if (user.isPlatformAdmin) redirect("/admin");
+  const isAllowedPlatformAdmin =
+    user.isPlatformAdmin &&
+    user.email.trim().toLowerCase() === PLATFORM_ADMIN_EMAIL;
+  if (isAllowedPlatformAdmin) redirect("/admin");
   if (memberships.length === 0) redirect("/hesap-yok");
   redirect(memberships.length > 1 ? "/panel-secimi" : "/panel");
 }
 
-/** DB'siz önizlemede tek izin verilen demo oturumu platform yöneticisidir. */
+/** Demo akışları yönetici oturumu üretemez; gerçek parola girişi gerekir. */
 export async function demoStartPanelSelectionAction(): Promise<void> {
-  if (!DEMO_ACTIVE) redirect("/login");
-  await startDemoSession("admin");
-  redirect("/admin");
+  redirect("/login?error=demo-admin-disabled");
 }
 
-export async function demoSwitchRoleAction(formData: FormData): Promise<void> {
-  if (!DEMO_ACTIVE) {
-    redirect("/login");
-  }
-  const rawRole = str(formData, "role");
-  if (rawRole !== "admin") {
-    redirect("/login?callbackUrl=%2Fadmin");
-  }
-  await startDemoSession("admin");
-  redirect(demoDestination(rawRole, formData.get("callbackUrl")));
+export async function demoSwitchRoleAction(_formData: FormData): Promise<void> {
+  redirect("/login?callbackUrl=%2Fadmin");
 }
 
 export async function registerAction(
@@ -240,9 +223,6 @@ export async function registerAction(
 
   const token = await createSession(userId, tenantId);
   await setSessionCookie(token);
-  if (DEMO_ACTIVE) {
-    await markDemoSession("business", email);
-  }
 
   redirect("/panel-secimi");
 }
