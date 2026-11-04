@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth";
 import { prisma, withPlatform, withTenant } from "@/lib/db";
 import { PLATFORM_ADMIN_EMAIL } from "@/lib/constants";
+import { PLATFORM_ADMIN_EMAIL } from "@/lib/constants";
 
 export type SessionUser = ValidSession["user"];
 
