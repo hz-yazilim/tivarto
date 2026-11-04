@@ -278,8 +278,11 @@ export async function importProductsCsvAction(formData: FormData): Promise<void>
     return { created: products.length };
   });
 
-  if ('error' in result) {
+  if ('error' in result && typeof result.error === 'string') {
     redirect('/panel/products?importError=' + encodeURIComponent(result.error));
+  }
+  if (!('created' in result) || typeof result.created !== 'number') {
+    redirect('/panel/products?importError=' + encodeURIComponent('Ürün aktarımı tamamlanamadı.'));
   }
   revalidatePath('/panel/products');
   revalidatePath('/panel/stock');
