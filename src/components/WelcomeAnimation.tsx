@@ -49,14 +49,6 @@ export default function WelcomeAnimation() {
             </div>
             <div className="tv-flow-basket-front">T</div>
           </div>
-          <div className="tv-flow-shelves">
-            {PRODUCTS.map((product, index) => (
-              <div key={product.label} className="tv-flow-shelf" style={{ animationDelay: `${index * .12}s` }}>
-                <span style={{ background: `linear-gradient(145deg, ${product.color}, #a855f7)` }}>{product.emoji}</span>
-                <small>{product.label}</small>
-              </div>
-            ))}
-          </div>
           <div className="absolute bottom-3 left-0 right-0 text-center text-[10px] font-semibold tracking-wide text-purple-200">TOPLA → DÜZENLE → YÖNET</div>
         </div>
       </div>
@@ -65,13 +57,9 @@ export default function WelcomeAnimation() {
         .tv-flow-basket-front{position:absolute;inset:12px 0 0;display:grid;place-items:center;border:1px solid rgba(255,255,255,.25);border-radius:13px 13px 20px 20px;background:linear-gradient(135deg,#7c3aed,#a855f7 50%,#ec4899);box-shadow:0 10px 24px #7c3aed55,inset 0 1px 0 #ffffff55;font-size:25px;font-weight:900;color:#ffffff99}
         .tv-flow-basket-items{position:absolute;inset:0;z-index:2}
         .tv-flow-falling{position:absolute;top:-46px;width:29px;height:29px;display:grid;place-items:center;border:1px solid #ffffff55;border-radius:9px;font-size:16px;box-shadow:0 5px 12px #0006;animation:tvFlowDrop 3.4s cubic-bezier(.2,.7,.25,1) infinite}
-        .tv-flow-shelves{position:absolute;left:13px;right:13px;bottom:35px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
-        .tv-flow-shelf{min-width:0;height:65px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:1px solid #a855f744;border-radius:11px;background:#ffffff08;animation:tvFlowShelf 1s ease both}
-        .tv-flow-shelf span{width:27px;height:27px;display:grid;place-items:center;border:1px solid #ffffff33;border-radius:8px;font-size:14px}
-        .tv-flow-shelf small{font-size:8px;color:#c4b5fd;white-space:nowrap}
         @keyframes tvFlowDrop{0%{opacity:0;transform:translateY(-12px) rotate(-12deg)}12%{opacity:1}75%{opacity:1;transform:translateY(126px) rotate(8deg)}100%{opacity:0;transform:translateY(132px) scale(.75)}}
         @keyframes tvFlowShelf{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-        @media(prefers-reduced-motion:reduce){.tv-flow-falling,.tv-flow-shelf{animation:none!important}}
+        @media(prefers-reduced-motion:reduce){.tv-flow-falling{animation:none!important}}
       `}</style>
     </section>
   );
