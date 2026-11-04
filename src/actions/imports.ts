@@ -30,7 +30,27 @@ function normalizeHeader(value: string): string {
     .replace(/[\s_-]+/g, '');
 }
 
+function detectCsvDelimiter(input: string): ',' | ';' {
+  let quoted = false;
+  let commas = 0;
+  let semicolons = 0;
+  for (let index = 0; index < input.length && input[index] !== '\\n'; index += 1) {
+    const char = input[index];
+    if (char === '"' && input[index + 1] === '"' && quoted) {
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (!quoted && char === ',') {
+      commas += 1;
+    } else if (!quoted && char === ';') {
+      semicolons += 1;
+    }
+  }
+  return semicolons > commas ? ';' : ',';
+}
+
 function parseCsvRows(input: string): string[][] {
+  const delimiter = detectCsvDelimiter(input);
   const rows: string[][] = [];
   let row: string[] = [];
   let field = '';
@@ -49,15 +69,15 @@ function parseCsvRows(input: string): string[][] {
       }
     } else if (char === '"' && field.length === 0) {
       quoted = true;
-    } else if (char === ',') {
+    } else if (char === delimiter) {
       row.push(field);
       field = '';
-    } else if (char === '\n') {
+    } else if (char === '\\n') {
       row.push(field);
       if (row.some((cell) => cell.trim().length > 0)) rows.push(row);
       row = [];
       field = '';
-    } else if (char !== '\r') {
+    } else if (char !== '\\r') {
       field += char;
     }
   }
