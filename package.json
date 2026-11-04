@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/production-setup.mjs && node scripts/prisma-generate.mjs && next build",
+    "build": "node scripts/production-setup.mjs && node scripts/verify-live-config.mjs && node scripts/prisma-generate.mjs && next build",
     "start": "node scripts/start.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
@@ -29,7 +29,8 @@
     "prisma": "^6.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tailwind-merge": "^2.5.0"
+    "tailwind-merge": "^2.5.0",
+    "@vercel/blob": "^2.8.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -45,6 +46,7 @@
     "deepmerge-ts": "^8.0.2",
     "next": {
       "postcss": "^8.5.32"
-    }
+    },
+    "@vercel/cli-config": "^0.3.6"
   }
 }

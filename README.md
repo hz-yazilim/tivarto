@@ -19,7 +19,7 @@ panelinden (`/admin`) işletmeleri, paketleri ve ödemeleri yönetir.
 | **Teknoloji** | Next.js 15 (App Router, React 19), TypeScript, Tailwind CSS, Prisma ORM (WASM query compiler + `pg`), PostgreSQL |
 | **Kimlik doğrulama** | E-posta + şifre (bcrypt), sunucu tarafı oturum (httpOnly cookie + `Session` tablosu) |
 | **Veri izolasyonu** | PostgreSQL **Row Level Security (RLS)** + her sorguda `app.tenant_id` bağlamı |
-| **Yayınlama** | GitHub → Render (Blueprint: `render.yaml`) |
+| **Yayınlama** | GitHub `main` → Vercel Production |
 | **Durum** | Aşama 2 tamamlandı (veritabanı + kullanıcı sistemi), Aşama 3 devam ediyor |
 
 ### Roller
@@ -56,7 +56,7 @@ panelinden (`/admin`) işletmeleri, paketleri ve ödemeleri yönetir.
 
 ### 🚧 Henüz yok / sıradaki işler
 
-- Görsel için kalıcı depolama (şu an `public/uploads` — Render'ın diski **geçici**)
+- E-posta sağlayıcısı entegrasyonu (doğrulama ve şifre sıfırlama e-postaları için Resend/SMTP anahtarı gerekir)
 - Abonelik/ödeme entegrasyonu (şu an yalnızca kayıt tutuluyor, tahsilat yok)
 - Şifre sıfırlama, e-posta doğrulama
 - Personel davet/rol yönetimi
@@ -358,3 +358,12 @@ Automatic payment collection, recurring subscription billing, provider refunds/c
 
 ### Database rollout
 New schema changes are delivered as Prisma migrations. Render startup applies pending migrations and then reapplies the idempotent PostgreSQL RLS policies, including the tenant-scoped support-ticket table.
+
+
+## Canlı yayın ve kalıcı depolama
+
+Canlı uygulama GitHub main dalından Vercel Production'a dağıtılır. Vercel Blob store tivarto-media proje ile bağlantılıdır; BLOB_READ_WRITE_TOKEN değişkeni Vercel tarafından Production, Preview ve Development ortamlarına otomatik eklenir. Yeni ürün/mağaza görselleri tenants/<tenantId>/... yolu ile kalıcı Blob depolamaya yazılır; Vercel Function yerel dosya sistemine üretimde dosya yazılmaz.
+
+Production build öncesinde scripts/verify-live-config.mjs çalışır. Demo değişkenleri açıksa veya gerçek veritabanı / kalıcı depolama değişkenleri eksikse canlı build başarısız olur. /api/health artık demo durumunu, veritabanını ve Blob yapılandırmasını birlikte kontrol eder.
+
+Önemli devam notları, canlı kaynak kimlikleri ve gerçek kullanıcı verisini koruma kuralları için PROJECT_STATUS.md dosyasını okuyun. Canlı kullanıcılar örnek veri değildir; test veya migration sırasında silinmemeli/değiştirilmemelidir.
