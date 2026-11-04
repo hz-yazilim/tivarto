@@ -15,19 +15,19 @@ export default async function PanelLayout({
   return (
     <div className="min-h-screen bg-secondary">
       {tenant.status === "SUSPENDED" && <TenantStatusGuard role={role} />}
-      <div className="flex h-screen">
+      <div className="flex h-[100dvh] min-h-screen">
         <PanelSidebar
           tenant={{ name: tenant.name, slug: tenant.slug }}
           user={{ name: user.name ?? user.email, isPlatformAdmin: user.isPlatformAdmin }}
           role={role}
         />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <header className="z-10 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-3 md:px-6">
+          <header className="z-10 flex items-center justify-between gap-3 border-b border-border bg-background px-3 py-2.5 sm:px-4 sm:py-3 md:px-6">
             <div className="flex min-w-0 items-center gap-2">
               <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground md:hidden">
                 T
               </span>
-              <h1 className="truncate text-base font-semibold md:text-lg">
+              <h1 className="truncate text-sm font-semibold sm:text-base md:text-lg">
                 {tenant.name}
               </h1>
               <span
@@ -37,12 +37,12 @@ export default async function PanelLayout({
                 title={tenant.status === "ACTIVE" ? "Aktif" : "Askıda"}
               />
             </div>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground sm:gap-3 sm:text-xs">
               <span className="hidden sm:inline">Yönetim Paneli</span>
               <a
                 href="/panel/akilli-analiz"
                 data-tour="smart-analysis-link"
-                className="rounded-md border border-input px-2 py-1 font-medium text-foreground hover:bg-accent"
+                className="rounded-lg border border-input px-2 py-1.5 text-[11px] font-medium text-foreground hover:bg-accent sm:px-2.5 sm:text-xs"
               >
                 Akıllı Analiz
               </a>
@@ -54,7 +54,7 @@ export default async function PanelLayout({
               </a>
             </div>
           </header>
-          <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
             {children}
           </main>
           <PanelOnboarding userId={user.id} tenantId={tenant.id} />
