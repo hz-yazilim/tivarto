@@ -72,6 +72,29 @@ export default function Home() {
         </div>
       </section>
 
+
+      <section className="relative z-10 mb-16">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-xs font-bold uppercase tracking-[.22em] text-purple-300">NEDEN TİVARTO?</p>
+          <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">Neden bizi seçmelisiniz?</h2>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">İşletmenizin günlük işlerini karmaşıklaştırmadan, ihtiyaç duyduğunuz araçları aynı yerde buluşturuyoruz.</p>
+        </div>
+        <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { icon: "🎯", title: "Tek merkezden yönetim", desc: "Ürün, stok, sipariş ve müşteri bilgilerini farklı araçlara dağılmadan takip edin." },
+            { icon: "⚡", title: "Kolay ve anlaşılır", desc: "Günlük işlemleri gereksiz adımlar olmadan, sade bir panel üzerinden yürütün." },
+            { icon: "📱", title: "Her ekrandan erişim", desc: "Telefon, tablet veya bilgisayarınızdan işletme süreçlerinize ulaşın." },
+            { icon: "🛍️", title: "Size ait dijital vitrin", desc: "Ürünlerinizi çevrimiçi sergileyin ve müşterilerinizin size ulaşmasını kolaylaştırın." },
+          ].map((item) => (
+            <article key={item.title} className="tiverto-card p-5">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-500/10 text-xl">{item.icon}</span>
+              <h3 className="mt-4 font-semibold text-zinc-100">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-zinc-400">{item.desc}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <footer className="relative z-10 mt-14 border-t border-white/10 pt-7 text-center text-xs text-zinc-500">
         © {new Date().getFullYear()} Tivarto · İşletmeni yönet, ticaretini büyüt.
       </footer>
