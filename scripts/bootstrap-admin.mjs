@@ -11,12 +11,13 @@ import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 
 const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL || "";
+const ADMIN_EMAIL = "hz.yazilimm@gmail.com";
 const email = (process.env.BOOTSTRAP_ADMIN_EMAIL || "").trim().toLowerCase();
 const password = process.env.BOOTSTRAP_ADMIN_PASSWORD || "";
 
 if (!connectionString) throw new Error("DATABASE_URL veya DIRECT_URL gerekli.");
-if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-  throw new Error("Geçerli BOOTSTRAP_ADMIN_EMAIL gerekli.");
+if (email !== ADMIN_EMAIL) {
+  throw new Error(`Tivarto platform yöneticisi yalnızca ${ADMIN_EMAIL} olabilir.`);
 }
 if (password.length < 8) {
   throw new Error("BOOTSTRAP_ADMIN_PASSWORD en az 8 karakter olmalı.");
