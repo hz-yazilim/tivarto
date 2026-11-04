@@ -1,6 +1,7 @@
 import { requireTenantContext } from "@/lib/session.server";
 import PanelSidebar from "@/components/panel-sidebar";
 import TenantStatusGuard from "@/components/tenant-status-guard";
+import PanelOnboarding from "@/components/panel-onboarding";
 
 export const dynamic = "force-dynamic";
 
