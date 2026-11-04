@@ -395,6 +395,56 @@ export async function createSupportTicketAction(formData: FormData): Promise<voi
 }
 
 
+
+/** Platform yöneticisi destek talebini kalıcı olarak silebilir; işlem denetim kaydına yazılır. */
+export async function deleteSupportTicketAdminAction(formData: FormData): Promise<void> {
+  const admin = await requirePlatformAdmin();
+  const id = str(formData, "id");
+  const reason = str(formData, "reason").slice(0, 300);
+  if (!id || reason.length < 5) return;
+  const ticket = await withPlatform((tx) => tx.supportTicket.findUnique({
+    where: { id }, select: { id: true, tenantId: true, subject: true, status: true },
+  }));
+  if (!ticket) return;
+  await withTenant(ticket.tenantId, async (tx) => {
+    await tx.supportTicket.delete({ where: { id: ticket.id } });
+    await tx.auditLog.create({ data: {
+      tenantId: ticket.tenantId, userId: admin.user.id,
+      action: "support.ticket.deleted", entity: "SupportTicket", entityId: ticket.id,
+      details: reason,
+    } });
+  });
+  await withPlatform((tx) => tx.platformAuditLog.create({ data: {
+    actorId: admin.user.id, action: "support.ticket.deleted",
+    targetType: "SupportTicket", targetId: ticket.id, reason,
+    beforeData: { subject: ticket.subject, status: ticket.status, tenantId: ticket.tenantId },
+  } }));
+  revalidatePath("/admin/support");
+  revalidatePath("/panel/support");
+}
+
+/** Kullanıcı yalnızca kendi oluşturduğu, kendi işletmesine ait talebi silebilir. */
+export async function deleteOwnSupportTicketAction(formData: FormData): Promise<void> {
+  const context = await requireTenantContext();
+  const id = str(formData, "id");
+  if (!id) return;
+  await withTenant(context.tenant.id, async (tx) => {
+    const ticket = await tx.supportTicket.findFirst({
+      where: { id, tenantId: context.tenant.id, createdById: context.user.id },
+      select: { id: true },
+    });
+    if (!ticket) return;
+    await tx.supportTicket.delete({ where: { id: ticket.id } });
+    await tx.auditLog.create({ data: {
+      tenantId: context.tenant.id, userId: context.user.id,
+      action: "support.ticket.deleted_by_creator", entity: "SupportTicket",
+      entityId: ticket.id, details: "Talep sahibi tarafından silindi",
+    } });
+  });
+  revalidatePath("/panel/support");
+  revalidatePath("/admin/support");
+}
+
 /** Hesap askıya alma geri alınabilir; tüm mevcut oturum belirteçleri iptal edilir. */
 export async function setPlatformUserSuspensionAction(formData: FormData): Promise<void> {
   const admin = await requirePlatformAdmin();
