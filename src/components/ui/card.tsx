@@ -19,7 +19,7 @@ interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={classNames("flex flex-col space-y-1.5 p-6", className)}
+    className={classNames("flex flex-col space-y-1.5 p-4 sm:p-6", className)}
     {...props}
   />
 ));
@@ -37,7 +37,7 @@ CardTitle.displayName = "CardTitle";
 
 interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {}
 const CardContent = React.forwardRef<HTMLDivElement, CardContentProps>(({ className, ...props }, ref) => (
-  <div ref={ref} className={classNames("p-6 pt-0", className)} {...props} />
+  <div ref={ref} className={classNames("p-4 pt-0 sm:p-6 sm:pt-0", className)} {...props} />
 ));
 CardContent.displayName = "CardContent";
 
