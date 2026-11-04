@@ -68,16 +68,20 @@ async function main() {
       console.log(`✓ ${PROTECTED_TABLES.length} tabloda tenant_isolation politikası aktif.`);
     }
 
-    // ---- Uyarı: uygulama kullanıcısı superuser ise RLS atlanır ----
-    const { rows: superusers } = await client.query(
-      `SELECT rolname FROM pg_roles WHERE rolsuper AND rolcanlogin`
+    // ---- Doğrudan uygulamanın kullandığı rolü doğrula ----
+    const appUser = process.env.APP_DB_USER || "tivarto_app";
+    const { rows: appRoles } = await client.query(
+      `SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = $1`,
+      [appUser]
     );
-    if (superusers.length > 0) {
-      console.warn(
-        `DİKKAT: Şu giriş yapabilen roller superuser: ${superusers
-          .map((row) => row.rolname)
-          .join(", ")}. Uygulama bu rollerden biriyle bağlanıyorsa RLS ETKİSİZDİR.`
-      );
+    if (appRoles.length === 0) {
+      console.error(`HATA: Uygulama rolü bulunamadı: ${appUser}`);
+      process.exitCode = 1;
+    } else if (appRoles[0].rolsuper || appRoles[0].rolbypassrls) {
+      console.error(`HATA: ${appUser} superuser/BYPASSRLS yetkisine sahip; tenant izolasyonu atlanabilir.`);
+      process.exitCode = 1;
+    } else {
+      console.log(`✓ ${appUser} giriş rolü superuser değil ve RLS'yi atlayamıyor.`);
     }
   } finally {
     await client.end();
