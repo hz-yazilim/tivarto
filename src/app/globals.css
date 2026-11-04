@@ -24,19 +24,20 @@
     --border: 258 22% 23%;
     --input: 258 22% 29%;
     --ring: 267 83% 65%;
-    --radius: 1rem;
+    --radius: .9rem;
     --tiverto-bg: #0b0912;
     --tiverto-surface: #15111f;
     --tiverto-card: #1e172b;
     --tiverto-purple: #7c3aed;
     --tiverto-red: #e11d48;
   }
-
   * { @apply border-border; }
-  html { min-height: 100%; background: var(--tiverto-bg); }
+  html { min-height: 100%; background: var(--tiverto-bg); scroll-behavior: smooth; }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.5;
     font-feature-settings: "rlig" 1, "calt" 1;
     background:
       radial-gradient(ellipse at 50% -18%, rgba(124,58,237,.20), transparent 48%),
@@ -47,6 +48,7 @@
   button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   a { transition: color .18s ease, opacity .18s ease; }
   :focus-visible { outline: 2px solid #a78bfa; outline-offset: 3px; }
+  button, input, select, textarea { font: inherit; }
 }
 
 @layer components {
@@ -56,9 +58,7 @@
     box-shadow: 0 20px 70px rgba(0,0,0,.28);
     backdrop-filter: blur(16px);
   }
-  .tiverto-gradient {
-    background: linear-gradient(110deg, #6d28d9 0%, #9333ea 58%, #e11d48 115%);
-  }
+  .tiverto-gradient { background: linear-gradient(110deg, #6d28d9 0%, #9333ea 58%, #e11d48 115%); }
   .tiverto-gradient-text {
     background: linear-gradient(100deg, #c4b5fd, #e9d5ff 55%, #fda4af);
     -webkit-background-clip: text;
@@ -70,14 +70,14 @@
     background: linear-gradient(145deg, rgba(35,27,51,.88), rgba(21,17,31,.96));
     box-shadow: 0 12px 35px rgba(0,0,0,.16);
   }
+  .tiverto-page-title { @apply text-xl font-bold tracking-tight sm:text-2xl; }
+  .tiverto-section-title { @apply text-base font-semibold tracking-tight sm:text-lg; }
 }
 
 /* Legacy utility classes are remapped to the product's dark purple palette. */
-.bg-amber-50, .bg-amber-50\/60, .bg-amber-100, .bg-amber-100\/70 {
-  background-color: rgba(124, 58, 237, .12) !important;
-}
-.bg-amber-200 { background-color: rgba(167, 139, 250, .22) !important; }
-.border-amber-200, .border-amber-400 { border-color: rgba(167, 139, 250, .34) !important; }
+.bg-amber-50, .bg-amber-50\/60, .bg-amber-100, .bg-amber-100\/70 { background-color: rgba(124,58,237,.12) !important; }
+.bg-amber-200 { background-color: rgba(167,139,250,.22) !important; }
+.border-amber-200, .border-amber-400 { border-color: rgba(167,139,250,.34) !important; }
 .text-amber-900, .text-amber-950, .text-amber-800 { color: #ede9fe !important; }
 .text-amber-700 { color: #c4b5fd !important; }
 .text-amber-100, .text-amber-200 { color: #f5f3ff !important; }
@@ -87,6 +87,31 @@
 .text-zinc-400 { color: #b8aec9 !important; }
 .text-zinc-500 { color: #a69bb8 !important; }
 
-@media (max-width: 640px) {
-  body { background-attachment: scroll; }
+/* Consistent controls and surfaces across every module. */
+input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+  max-width: 100%;
+  min-width: 0;
+}
+button, [role="button"], a { touch-action: manipulation; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; }
+th { color: #c4b5fd; font-weight: 600; }
+td, th { vertical-align: middle; }
+:where(.rounded-xl, .rounded-2xl, .rounded-3xl) { scroll-margin-top: 5rem; }
+
+/* Tablet and mobile: compact type scale, prevent oversized headings and horizontal overflow. */
+@media (max-width: 767px) {
+  body { font-size: 14px; background-attachment: scroll; }
+  h1 { letter-spacing: -.035em; }
+  main { min-width: 0; }
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: 16px; }
+  button, [role="button"] { min-height: 38px; }
+  table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tiverto-card { border-radius: 1rem; }
+}
+@media (max-width: 420px) {
+  body { font-size: 13.5px; }
+  .tiverto-card { box-shadow: 0 8px 22px rgba(0,0,0,.14); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
