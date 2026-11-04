@@ -57,6 +57,7 @@ export default async function PanelLayout({
           <main className="flex-1 overflow-y-auto p-4 md:p-6">
             {children}
           </main>
+          <PanelOnboarding userId={user.id} tenantId={tenant.id} />
         </div>
       </div>
     </div>
