@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { prisma } from "@/lib/db";
 import { PLATFORM_ADMIN_EMAIL } from "@/lib/constants";
+import { PLATFORM_ADMIN_EMAIL } from "@/lib/constants";
 
 const SALT_ROUNDS = 12;
 
