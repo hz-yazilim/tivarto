@@ -49,6 +49,7 @@ jobs:
                 console.log(name + " | " + item.severity + " | direct=" + item.isDirect + " | fix=" + JSON.stringify(item.fixAvailable) + " | " + via);
               }
             }
+            if (entries.length > 0) process.exit(1);
           '
 
       - name: Üretim derlemesi
