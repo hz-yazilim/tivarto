@@ -30,7 +30,7 @@ export async function getBusinessInsights() {
         where: {
           tenantId: tenant.id,
           createdAt: { gte: last60Start },
-          status: { not: 'CANCELLED' },
+          status: 'COMPLETED',
         },
         orderBy: { createdAt: 'desc' },
         take: 2000,
