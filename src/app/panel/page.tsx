@@ -61,7 +61,7 @@ export default async function Dashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div data-tour="dashboard-stats" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Toplam Ürün" value={stats.products} icon="📦" />
         <StatCard
           title="Kritik Stok"

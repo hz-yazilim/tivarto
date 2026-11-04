@@ -1,6 +1,7 @@
 import { requireTenantContext } from "@/lib/session.server";
 import PanelSidebar from "@/components/panel-sidebar";
 import TenantStatusGuard from "@/components/tenant-status-guard";
+import PanelOnboarding from "@/components/panel-onboarding";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,13 @@ export default async function PanelLayout({
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="hidden sm:inline">Yönetim Paneli</span>
               <a
+                href="/panel/akilli-analiz"
+                data-tour="smart-analysis-link"
+                className="rounded-md border border-input px-2 py-1 font-medium text-foreground hover:bg-accent"
+              >
+                Akıllı Analiz
+              </a>
+              <a
                 href={`/shop/${tenant.slug}`}
                 className="rounded-md border border-input px-2 py-1 font-medium text-foreground hover:bg-accent"
               >
@@ -49,6 +57,7 @@ export default async function PanelLayout({
           <main className="flex-1 overflow-y-auto p-4 md:p-6">
             {children}
           </main>
+          <PanelOnboarding userId={user.id} tenantId={tenant.id} />
         </div>
       </div>
     </div>

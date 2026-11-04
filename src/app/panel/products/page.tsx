@@ -6,16 +6,17 @@ import ProductForm, {
 } from "@/components/product-form";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
+import ProductImportForm from "@/components/product-import-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string }>;
+  searchParams: Promise<{ edit?: string; imported?: string; importError?: string }>;
 }) {
   const { tenant } = await getTenantContext();
-  const { edit } = await searchParams;
+  const { edit, imported, importError } = await searchParams;
 
   const data = await withTenant(tenant.id, async (tx) => {
     const [products, categories] = await Promise.all([
@@ -49,6 +50,11 @@ export default async function ProductsPage({
           Yenile
         </Link>
       </div>
+
+      {imported ? <p role="status" className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm text-emerald-700">{imported} ürün başarıyla aktarıldı. Açılış stok hareketleri de kaydedildi.</p> : null}
+      {importError ? <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/5 p-3 text-sm text-red-700">{importError}</p> : null}
+
+      <ProductImportForm />
 
       <Card>
         <CardContent className="p-0">

@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    serverActions: { bodySizeLimit: "3mb" },
+  },
   poweredByHeader: false,
   // Önizleme/uzak geliştirme ortamlarında (ör. *.e2b.app) server action
   // isteklerinin Next tarafından reddedilmemesi için.
