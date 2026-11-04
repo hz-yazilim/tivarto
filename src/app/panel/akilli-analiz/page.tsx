@@ -39,7 +39,7 @@ export default async function SmartAnalysisPage() {
           </div>
           <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">Akıllı İşletme Analizi</h1>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Satış ve stok hareketlerinden üretilen öneriler. Tahminler mevcut kayıtlarına dayanır; otomatik sipariş veya müşteri mesajı gönderilmez.
+            Tamamlanmış sipariş ve stok hareketlerinden üretilen öneriler. Bekleyen siparişler gerçekleşmiş satış sayılmaz; otomatik sipariş veya müşteri mesajı gönderilmez.
           </p>
         </div>
         <Link href="/panel/reports" className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-accent">
@@ -58,7 +58,7 @@ export default async function SmartAnalysisPage() {
         <Metric
           label="Son 30 gün sipariş"
           value={String(data.orderCount30)}
-          detail="İptal edilen siparişler hariç"
+          detail="Yalnızca tamamlanmış siparişler"
         />
         <Metric
           label="Tahmini brüt kâr"
@@ -152,7 +152,7 @@ export default async function SmartAnalysisPage() {
                 </span>
               </div>
             )) : (
-              <p className="rounded-xl bg-muted/40 p-4 text-sm text-muted-foreground">Karşılaştırma için henüz satış kaydı yok.</p>
+              <p className="rounded-xl bg-muted/40 p-4 text-sm text-muted-foreground">Karşılaştırma için henüz tamamlanmış satış kaydı yok.</p>
             )}
           </div>
         </article>
@@ -161,7 +161,7 @@ export default async function SmartAnalysisPage() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="font-semibold">Yeniden kazanılabilecek müşteriler</h2>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">Son 60 günde en az iki sipariş verip 21 gündür sipariş oluşturmayan müşteriler.</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">Son 60 günde en az iki tamamlanmış sipariş verip 21 gündür yeni sipariş oluşturmayan müşteriler.</p>
             </div>
             <Link href="/panel/customers" className="text-xs font-semibold text-primary hover:underline">Müşteriler</Link>
           </div>
@@ -186,9 +186,9 @@ export default async function SmartAnalysisPage() {
 
       {!data.hasHistory && (
         <section className="rounded-2xl border border-dashed border-border p-6 text-center">
-          <h2 className="font-semibold">Analiz için satış geçmişi gerekiyor</h2>
+          <h2 className="font-semibold">Analiz için tamamlanmış satış geçmişi gerekiyor</h2>
           <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
-            İlk siparişler geldikçe satış ivmesi, stok yenileme ve müşteri geri kazanım önerileri burada oluşacak. Ürün ve stok verilerin şimdiden stok değerini hesaplamak için kullanılabilir.
+            Siparişler tamamlandıkça satış ivmesi, stok yenileme ve müşteri geri kazanım önerileri burada oluşacak. Ürün ve stok verilerin şimdiden stok değerini hesaplamak için kullanılabilir.
           </p>
           <Link href="/panel/orders" className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
             Siparişleri görüntüle
