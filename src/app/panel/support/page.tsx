@@ -28,10 +28,12 @@ export default async function TenantSupportPage() {
           <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{ticket.description}</p>
           {ticket.resolutionNote && <p className="mt-3 rounded-lg bg-purple-500/10 p-3 text-sm text-purple-100"><strong>Destek notu:</strong> {ticket.resolutionNote}</p>}
           <p className="mt-3 text-[11px] text-muted-foreground">Oluşturulma: {new Date(ticket.createdAt).toLocaleString("tr-TR")} · Öncelik: {ticket.priority}</p>
-          <form action={deleteOwnSupportTicketAction} className="mt-3 border-t border-border pt-3">
-            <input type="hidden" name="id" value={ticket.id} />
-            <ConfirmSubmitButton variant="destructive" size="sm" message="Bu destek talebini silmek istediğinize emin misiniz?">Talebimi sil</ConfirmSubmitButton>
-          </form>
+          {ticket.canDelete && (
+            <form action={deleteOwnSupportTicketAction} className="mt-3 border-t border-border pt-3">
+              <input type="hidden" name="id" value={ticket.id} />
+              <ConfirmSubmitButton variant="destructive" size="sm" message="Bu destek talebini silmek istediğinize emin misiniz?">Talebimi sil</ConfirmSubmitButton>
+            </form>
+          )}
         </article>)}
         {tickets.length === 0 && <p className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">Henüz talep oluşturmadınız.</p>}
       </div>
