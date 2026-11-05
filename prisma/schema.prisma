@@ -57,6 +57,14 @@ enum SupportTicketPriority {
   URGENT
 }
 
+enum AccountDeletionRequestStatus {
+  PENDING_VERIFICATION
+  VERIFIED
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
 // ---------- Platform seviyesi (tenant_id YOK) ----------
 
 model Plan {
@@ -80,6 +88,7 @@ model User {
   memberships   Membership[]
   sessions      Session[]
   supportTickets SupportTicket[]
+  accountDeletionRequests AccountDeletionRequest[]
 }
 
 model Session {
@@ -388,4 +397,25 @@ model SupportTicket {
   @@index([tenantId, createdAt])
   @@index([status, priority, createdAt])
   @@index([createdById])
+}
+
+
+// External Google Play account-deletion requests. Tokens are stored as hashes;
+// the user relation is nullable so the request can remain as a minimal audit
+// record after the user account has been deleted.
+model AccountDeletionRequest {
+  id                 String                       @id @default(cuid())
+  userId             String?
+  tokenHash          String?                      @unique
+  requestFingerprint String
+  status             AccountDeletionRequestStatus @default(PENDING_VERIFICATION)
+  expiresAt          DateTime
+  verifiedAt         DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime                     @default(now())
+  user               User?                        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([requestFingerprint, createdAt])
+  @@index([status, createdAt])
 }
