@@ -4,33 +4,30 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - android-apk-conversion
+      - main
+      - post-main-hardening
     paths:
       - "capacitor.config.ts"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/android-apk.yml"
       - "android/**"
-      - "src/components/**"
-      - "src/actions/**"
-      - "prisma/schema.prisma"
-      - "prisma/migrations/**"
-      - "src/app/layout.tsx"
+      - "src/**"
+      - "prisma/**"
+      - "scripts/apply-rls.mjs"
       - "www/**"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-android:
-    name: Build debug APK and Android Studio project
+    name: Type-check and build Android debug APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout migration branch
+      - name: Checkout triggering commit
         uses: actions/checkout@v4
-        with:
-          ref: android-apk-conversion
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
@@ -49,16 +46,8 @@ jobs:
         with:
           packages: platform-tools platforms;android-35 build-tools;35.0.0
 
-      - name: Install dependencies and synchronize lockfile
-        run: |
-          npm install --no-audit --no-fund
-          if ! git diff --quiet -- package-lock.json; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add package-lock.json
-            git commit -m "chore: sync Capacitor dependency lockfile"
-            git push origin HEAD:android-apk-conversion
-          fi
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
 
       - name: Type-check application
         run: npm run typecheck
