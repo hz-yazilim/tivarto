@@ -54,11 +54,14 @@ jobs:
           fi
           npx cap sync android
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
       - name: Build debug APK
         working-directory: android
-        run: |
-          chmod +x ./gradlew
-          ./gradlew --no-daemon assembleDebug
+        run: gradle --no-daemon assembleDebug
 
       - name: Package Android Studio project
         run: zip -qr tivarto-android-studio-project.zip android capacitor.config.ts package.json package-lock.json
