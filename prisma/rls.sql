@@ -4,8 +4,9 @@
 --
 -- Politikalar (fail-closed):
 --   * app.tenant_id ayarlı  -> sadece o işletmenin satırları görünür/yazılır.
---   * app.platform = 'on'   -> platform yöneticisi tüm satırları görür (merkez panel).
---   * Hiçbiri ayarlı değil  -> HİÇBİR satır görünmez (güvenli varsayılan).
+--   * app.platform = 'on'   -> platform yöneticisi tüm tenant satırlarını görür.
+--   * Tenant/platform bağlamı yok -> tenant verisi görünmez.
+--   * AccountDeletionRequest -> yalnızca sunucu uygulama rolü erişebilir.
 -- Uygulama tarafı: tenant işlemleri withTenant(), platform işlemleri withPlatform()
 -- fonksiyonlarından geçmelidir (bkz. src/lib/db.ts).
 
@@ -32,3 +33,18 @@ BEGIN
     );
   END LOOP;
 END $$;
+
+-- Account deletion requests contain token hashes and email-linked account IDs.
+-- They are only accessed by the trusted server-side application role, never
+-- through the public Supabase Data API roles.
+ALTER TABLE public."AccountDeletionRequest" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public."AccountDeletionRequest" FORCE ROW LEVEL SECURITY;
+REVOKE ALL PRIVILEGES ON TABLE public."AccountDeletionRequest" FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public."AccountDeletionRequest" TO tivarto_app;
+DROP POLICY IF EXISTS account_deletion_app_access ON public."AccountDeletionRequest";
+CREATE POLICY account_deletion_app_access
+  ON public."AccountDeletionRequest"
+  FOR ALL
+  TO tivarto_app
+  USING (true)
+  WITH CHECK (true);
