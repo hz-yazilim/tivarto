@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AccountDeletionRequestForm from "@/components/account-deletion-request-form";
+import AccountDeletionStatus from "@/components/account-deletion-status";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export default function AccountDeletionRequestPage({
           Tivarto hesabınıza erişemiyorsanız, hesabınıza kayıtlı e-posta adresiyle silme talebi gönderebilirsiniz. E-posta adresinin size ait olduğunu doğrulamak için 24 saat geçerli bir bağlantı gönderilir.
         </p>
         <AccountDeletionRequestForm />
+        <AccountDeletionStatus />
         <div className="mt-7 border-t border-white/10 pt-5 text-xs leading-6 text-zinc-400">
           Hesap silindiğinde giriş bilgileriniz ve hesabınıza ait oturumlar kaldırılır. İşletme kayıtları, diğer kullanıcıların çalışmasını ve yasal saklama yükümlülüklerini korumak için ayrı değerlendirilir. İşletme sahibi hesaplarında önce sahiplik devri gerekebilir.
           <p className="mt-3"><Link href="/gizlilik" className="text-purple-300 underline">Gizlilik politikası</Link></p>
