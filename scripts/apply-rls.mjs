@@ -50,7 +50,7 @@ async function main() {
     await client.query("COMMIT");
     console.log("RLS politikaları uygulandı (prisma/rls.sql).");
 
-    // ---- Doğrulama: eksik politika var mı? ----
+    // ---- Tenant tablolarında politika doğrulaması ----
     const { rows } = await client.query(
       `SELECT tablename, policyname
          FROM pg_policies
@@ -60,16 +60,51 @@ async function main() {
     const missing = PROTECTED_TABLES.filter((table) => !covered.has(table));
 
     if (missing.length > 0) {
-      console.warn(
-        `UYARI: Şu tablolarda RLS politikası yok: ${missing.join(", ")}`
+      console.error(
+        `HATA: Şu tablolarda tenant_isolation politikası yok: ${missing.join(", ")}`
       );
       process.exitCode = 1;
     } else {
       console.log(`✓ ${PROTECTED_TABLES.length} tabloda tenant_isolation politikası aktif.`);
     }
 
-    // ---- Doğrudan uygulamanın kullandığı rolü doğrula ----
+    // ---- Hesap silme talepleri yalnızca uygulama rolüne açık olmalı ----
     const appUser = process.env.APP_DB_USER || "tivarto_app";
+    const { rows: deletionSecurity } = await client.query(
+      `SELECT c.relrowsecurity, c.relforcerowsecurity,
+              EXISTS (
+                SELECT 1 FROM pg_policies p
+                 WHERE p.schemaname = 'public'
+                   AND p.tablename = 'AccountDeletionRequest'
+                   AND p.policyname = 'account_deletion_app_access'
+              ) AS app_policy,
+              has_table_privilege($1, 'public."AccountDeletionRequest"', 'SELECT') AS app_select,
+              has_table_privilege($1, 'public."AccountDeletionRequest"', 'INSERT') AS app_insert,
+              has_table_privilege('anon', 'public."AccountDeletionRequest"', 'SELECT') AS anon_select,
+              has_table_privilege('authenticated', 'public."AccountDeletionRequest"', 'SELECT') AS authenticated_select
+         FROM pg_class c
+         JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public' AND c.relname = 'AccountDeletionRequest'`,
+      [appUser]
+    );
+    const deletion = deletionSecurity[0];
+    if (
+      !deletion ||
+      !deletion.relrowsecurity ||
+      !deletion.relforcerowsecurity ||
+      !deletion.app_policy ||
+      !deletion.app_select ||
+      !deletion.app_insert ||
+      deletion.anon_select ||
+      deletion.authenticated_select
+    ) {
+      console.error("HATA: AccountDeletionRequest RLS/uygulama rolü erişim doğrulaması başarısız.");
+      process.exitCode = 1;
+    } else {
+      console.log(`✓ AccountDeletionRequest yalnızca ${appUser} uygulama rolü üzerinden erişilebilir.`);
+    }
+
+    // ---- Doğrudan uygulamanın kullandığı rolü doğrula ----
     const { rows: appRoles } = await client.query(
       `SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = $1`,
       [appUser]
@@ -78,7 +113,7 @@ async function main() {
       console.error(`HATA: Uygulama rolü bulunamadı: ${appUser}`);
       process.exitCode = 1;
     } else if (appRoles[0].rolsuper || appRoles[0].rolbypassrls) {
-      console.error(`HATA: ${appUser} superuser/BYPASSRLS yetkisine sahip; tenant izolasyonu atlanabilir.`);
+      console.error(`${appUser} superuser/BYPASSRLS yetkisine sahip; tenant izolasyonu atlanabilir.`);
       process.exitCode = 1;
     } else {
       console.log(`✓ ${appUser} giriş rolü superuser değil ve RLS'yi atlayamıyor.`);
