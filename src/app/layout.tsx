@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import PwaRegister from "@/components/pwa-register";
+import AndroidNavigationBridge from "@/components/android-navigation-bridge";
 
 export const metadata: Metadata = {
   title: {
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="tr">
       <body className="min-h-screen bg-background text-foreground antialiased">
         <PwaRegister />
+        <AndroidNavigationBridge />
         {children}
       </body>
     </html>
