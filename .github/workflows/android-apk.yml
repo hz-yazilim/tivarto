@@ -11,6 +11,9 @@ on:
       - "package-lock.json"
       - ".github/workflows/android-apk.yml"
       - "android/**"
+      - "src/components/**"
+      - "src/app/layout.tsx"
+      - "www/**"
 
 permissions:
   contents: read
@@ -35,6 +38,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
