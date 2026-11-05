@@ -2,17 +2,17 @@
 
 import { createHash } from "node:crypto";
 import { redirect } from "next/navigation";
-import { prisma, withPlatform } from "@/lib/db";
+import { withPlatform } from "@/lib/db";
 
 export async function completeExternalAccountDeletionAction(formData: FormData): Promise<void> {
   const token = String(formData.get("token") ?? "");
   if (token.length < 32 || token.length > 128) redirect("/hesap-silme?status=invalid");
 
   const tokenHash = createHash("sha256").update(token).digest("hex");
-  let result: "COMPLETED" | "OWNER_TRANSFER" | "INVALID" = "INVALID";
 
+  let result: "COMPLETED" | "OWNER_TRANSFER" | "INVALID";
   try {
-    await withPlatform(async (tx) => {
+    result = await withPlatform(async (tx): Promise<"COMPLETED" | "OWNER_TRANSFER" | "INVALID"> => {
       const deletionRequest = await tx.accountDeletionRequest.findUnique({
         where: { tokenHash },
       });
@@ -21,7 +21,7 @@ export async function completeExternalAccountDeletionAction(formData: FormData):
         deletionRequest.status !== "PENDING_VERIFICATION" ||
         deletionRequest.expiresAt <= new Date()
       ) {
-        return;
+        return "INVALID";
       }
 
       const user = deletionRequest.userId
@@ -32,7 +32,7 @@ export async function completeExternalAccountDeletionAction(formData: FormData):
           where: { id: deletionRequest.id },
           data: { status: "REJECTED", tokenHash: null, userId: null },
         });
-        return;
+        return "INVALID";
       }
 
       const memberships = await tx.membership.findMany({
@@ -44,8 +44,7 @@ export async function completeExternalAccountDeletionAction(formData: FormData):
           where: { id: deletionRequest.id },
           data: { status: "VERIFIED", verifiedAt: new Date(), tokenHash: null },
         });
-        result = "OWNER_TRANSFER";
-        return;
+        return "OWNER_TRANSFER";
       }
 
       // Account data is removed; shared business and legally retained records remain.
@@ -74,7 +73,7 @@ export async function completeExternalAccountDeletionAction(formData: FormData):
         },
       });
       await tx.user.delete({ where: { id: user.id } });
-      result = "COMPLETED";
+      return "COMPLETED";
     });
   } catch (error) {
     console.error("external account deletion completion failed", error);
