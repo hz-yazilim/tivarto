@@ -12,6 +12,9 @@ on:
       - ".github/workflows/android-apk.yml"
       - "android/**"
       - "src/components/**"
+      - "src/actions/**"
+      - "prisma/schema.prisma"
+      - "prisma/migrations/**"
       - "src/app/layout.tsx"
       - "www/**"
 
