@@ -73,6 +73,10 @@ export async function deleteOwnAccountAction(
 
       await tx.membership.deleteMany({ where: { userId: user.id } });
       await tx.session.deleteMany({ where: { userId: user.id } });
+      await tx.accountDeletionRequest.updateMany({
+        where: { userId: user.id, status: "VERIFIED" },
+        data: { status: "COMPLETED", userId: null, tokenHash: null, completedAt: new Date() },
+      });
       await tx.user.delete({ where: { id: user.id } });
 
       // Do not write the deleted user's email, name, or ID to the audit log.
